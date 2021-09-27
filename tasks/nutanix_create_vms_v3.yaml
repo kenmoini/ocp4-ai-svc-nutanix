@@ -1,0 +1,53 @@
+---
+- name: Set up Disks Metadata
+  include_tasks: nutanix_vm_meta_setup_disks.yaml
+
+- name: Set up NIC Metadata
+  include_tasks: nutanix_vm_meta_setup_nics.yaml
+
+- name: Set template facts
+  set_fact:
+    v3_disk_template: "{{ lookup('template', 'templates/nutanix_vm_v3_disks.json.j2') }}"
+
+- name: Set template facts
+  set_fact:
+    v3_vm_template: "{{ lookup('template', 'templates/nutanix_vm_v3_body.json.j2') }}"
+
+- name: d
+  debug:
+    msg: "{{ v3_vm_template | string }}"
+
+- name: Check for this VM
+  uri:
+    url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms/list"
+    return_content: yes
+    method: POST
+    status_code: 200
+    body_format: json
+    body: '{"kind":"vm", "filter": "vm_name=={{ cluster_name }}-{{ node.name }}"}'
+    force_basic_auth: yes
+    user: "{{ nutanix_prism_username }}"
+    password: "{{ nutanix_prism_password }}"
+    validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+  register: nutanix_vm_check
+
+- name: Create VM processes
+  block:
+  - name: Create VM
+    uri:
+      url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms"
+      return_content: yes
+      method: POST
+      status_code: 202
+      body_format: json
+      force_basic_auth: yes
+      user: "{{ nutanix_prism_username }}"
+      password: "{{ nutanix_prism_password }}"
+      validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+      body: "{{ v3_vm_template }}"
+    register: nutanix_create_vm_info
+
+  - name: D
+    debug:
+      msg: "{{ nutanix_create_vm_info }}"
+  when: nutanix_vm_check.json.entities | length == 0

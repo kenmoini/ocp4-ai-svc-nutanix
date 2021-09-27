@@ -1,0 +1,122 @@
+---
+
+- name: Test playbook
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    cluster_id: ""
+    cluster_status: ""
+    deployment_name: ""
+    compiled_uri_headers:
+      User-Agent: AnsibleAutomation/4.2
+    ml_project_namespace: liquor-ml
+    vm_disk_attach:
+      vm_disks:
+        - vm_disk_create:
+            size: 1024
+            disk_size: 1024
+            storage_container_uuid: 2d47269d-8e15-4a76-93a8-ef0dda4e1718
+          disk_address:
+            device_bus: SCSI
+            device_index: 0
+            size: 1024
+            disk_size: 1024
+          size: 1024
+          disk_size: 1024
+
+    node:
+      name: cp-1
+
+  tasks:
+    - name: Read in variables
+      include_vars:
+        dir: vars
+        extensions:
+          - 'yaml'
+          - 'yml'
+
+#    - name: attach disk
+#      include_tasks:
+#        name: tasks/nutanix_attach_disks.yaml
+#      vars:
+#        node:
+#          name: ahv-ocp-cp-1
+
+    - name: Get VM Info
+      uri:
+        url: "https://192.168.42.57:9440/api/nutanix/v3/vms/list"
+        return_content: yes
+        method: POST
+        status_code: 200
+        body_format: json
+        force_basic_auth: yes
+        body: '{"kind":"vm", "filter": "vm_name=={{ cluster_name }}-{{ node.name }}"}'
+        user: "{{ nutanix_prism_username }}"
+        password: "{{ nutanix_prism_password }}"
+        validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+      register: nutanix_vm_info
+
+    - name: Add VM Disks as VM redefinitions
+      block:
+
+      - name: Set fact for new disk to attach
+        set_fact:
+          new_disk:
+            device_properties:
+              device_type: DISK
+              disk_address:
+                adapter_type: SCSI
+                device_index: 0
+            disk_size_mib: 10240
+            storage_config:
+              storage_container_reference:
+                kind: storage_container
+                name: machines
+                uuid: 2d47269d-8e15-4a76-93a8-ef0dda4e1718
+
+      - name: Combine old and new disk_lists
+        set_fact:
+          new_disks: "{{ nutanix_vm_info.json.entities[0].spec.resources.disk_list + [new_disk] }}"
+          old_resources: "{{ nutanix_vm_info.json.entities[0].spec.resources }}"
+
+      - name: Redefine VM
+        uri:
+          url: "https://192.168.42.57:9440/api/nutanix/v3/vms/aafa11c3-4c2f-461a-a429-b6b69ff2bcc4"
+          return_content: yes
+          method: PUT
+          status_code: 202
+          body_format: json
+          force_basic_auth: yes
+          user: "{{ nutanix_prism_username }}"
+          password: "{{ nutanix_prism_password }}"
+          validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+          body: >
+            {
+              "metadata": {
+                "kind": "vm",
+                "spec_version": {{ nutanix_vm_info.json.entities[0].metadata.spec_version | int }}
+              },
+              "spec": {
+                "name": "{{ cluster_name }}-{{ node.name }}",
+                "resources": {
+                  "disk_list": {{ new_disks }},
+                  "num_sockets": {{ old_resources.num_sockets | int }},
+                  "num_vcpus_per_socket": {{ old_resources.num_vcpus_per_socket | int }},
+                  "num_threads_per_core": {{ old_resources.num_threads_per_core | int }},
+                  "memory_size_mib": {{ old_resources.memory_size_mib | int }},
+                  "is_vcpu_hard_pinned": false,
+                  "power_state": "{{ old_resources.power_state }}",
+                  "hardware_clock_timezone": "{{ old_resources.hardware_clock_timezone }}",
+                  "is_agent_vm": false,
+                  "disable_branding": true,
+                  "machine_type": "{{ old_resources.machine_type }}",
+                  "nic_list": {{ old_resources.nic_list }},
+                  "vga_console_enabled": true,
+                }
+              }
+            }
+        register: nutanix_attach_vm_disk_info
+
+      when: nutanix_vm_info.json.entities[0].spec.resources.disk_list | length == 1

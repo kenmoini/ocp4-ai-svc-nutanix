@@ -1,0 +1,171 @@
+---
+- name: Create an Assisted Installer provisioned OpenShift Cluster on Libvirt/KVM
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    cluster_id: ""
+    cluster_status: ""
+    deployment_name: ""
+    compiled_uri_headers:
+      User-Agent: AnsibleAutomation/4.2
+
+  tasks:
+    - name: Read in variables
+      include_vars:
+        dir: vars
+        extensions:
+          - 'yaml'
+          - 'yml'
+
+    - name: Preflight Checks
+      include_tasks: tasks/preflight.yaml
+
+    - name: Set up Authentication Headers if needed
+      include_tasks: tasks/ai_svc_setup_auth_headers.yaml
+      when: assisted_service_authentication != "none"
+
+    - name: Preflight Version Checks
+      include_tasks: tasks/ai_svc_query_openshift_versions.yaml
+
+    - name: Nutanix Preflight
+      include_tasks: tasks/nutanix_set_facts.yaml
+
+    - name: Read AI Service, check for existing cluster
+      uri:
+        headers: "{{ compiled_uri_headers }}"
+        url: "{{ assisted_service_endpoint }}/clusters"
+        return_content: yes
+        method: GET
+      register: read_clusters
+
+    - name: Set facts if cluster exists
+      set_fact:
+        cluster_id: "{{ item.id }}"
+        cluster_status: "{{ item.status }}"
+      loop: "{{ read_clusters.json }}"
+      when: (item.base_dns_domain == cluster_domain) and (item.name == cluster_name)
+
+    # y tho? oh yeah, if importing, duh lololo
+    - name: Create Cluster Asset Generation Directory
+      file:
+        path: "{{ generated_asset_directory }}/{{ cluster_id }}"
+        state: directory
+      when: cluster_id != ""
+
+    - name: Create Cluster if it does not already exist
+      block:
+        - name: Set random var for this deployment json run
+          set_fact:
+            deployment_name: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=8') }}"
+
+        - name: SSH Key Generation & Reading
+          include_tasks: tasks/ssh_keys.yaml
+
+        - name: Create the base cluster deployment definition
+          include_tasks: tasks/ai_svc_create_cluster.yaml
+      when: cluster_id == ""
+
+    - name: Set Cluster Configuration
+      block:
+
+        - name: Create Cluster Asset Generation Directory
+          file:
+            path: "{{ generated_asset_directory }}/{{ cluster_id }}"
+            state: directory
+
+        - name: Copy deployment file into cluster directory
+          copy:
+            remote_src: true
+            src: "{{ generated_asset_directory }}/deployment-{{ deployment_name }}.json"
+            dest: "{{ generated_asset_directory }}/{{ cluster_id }}/deployment.json"
+
+        - name: Remove old named deployment.json
+          file:
+            path: "{{ generated_asset_directory }}/deployment-{{ deployment_name }}.json"
+            state: absent
+
+        - name: SSH Key Migration
+          include_tasks: tasks/ssh_keys.yaml
+
+        - name: Patch in Cluster Preconfiguration for Networking
+          include_tasks: tasks/ai_svc_preconfig_networking.yaml
+
+        - name: Configure ISO Parameters
+          include_tasks: tasks/ai_svc_configure_iso_params.yaml
+          
+      when: deployment_name != ""
+
+    - name: Create Nutanix Infrastructure
+      block:
+      - name: Create & Upload Image
+        include_tasks: tasks/nutanix_create_image_v2.yaml
+        vars:
+          image_source_uri: "{{ assisted_service_endpoint }}/clusters/{{ cluster_id }}/downloads/image"
+          image_name: "ocp-ai-{{ cluster_id }}"
+          image_description: "OpenShift Assisted Installer ISO for Cluster {{ cluster_name }} with Cluster ID {{ cluster_id }}"
+
+      - name: Create VMs on via Prism
+        include_tasks: tasks/nutanix_create_vms_mixed_api_dumb_shit.yaml
+        loop: "{{ cluster_nodes }}"
+        loop_control:
+          loop_var: node
+      tags:
+        - create_nutanix_cluster
+
+    - name: Wait for hosts to report into the Assisted Installer service
+      include_tasks: tasks/ai_svc_check_for_hosts.yaml
+
+    - name: Set Host Names and Roles for Standard HA OpenShift Cluster
+      include_tasks: tasks/ai_svc_set_host_names_roles.yaml
+      when: cluster_type == "Standard"
+
+    - name: Set Network VIPs
+      include_tasks: tasks/ai_svc_set_vips.yaml
+
+    - name: Check to make sure the hosts are ready and the cluster can be installed
+      include_tasks: tasks/ai_svc_check_install_ready.yaml
+
+    - name: Set Cilium Networking Cluster Manifests
+      include_tasks: tasks/networking_cilium.yaml
+      when: cluster_network_type == "Cilium"
+
+    - name: Set Calico Networking Cluster Manifests
+      include_tasks: tasks/networking_calico.yaml
+      when: cluster_network_type == "Calico"
+
+    - name: Start the Cluster installation
+      include_tasks: tasks/ai_svc_start_install.yaml
+
+    - name: Reboot Libvirt VMs
+      block:
+      - name: Set blank fact for VM list
+        set_fact:
+          vm_names: []
+          shutdown_vms: []
+
+      - name: Add VM Names to fact
+        set_fact:
+          vm_names: "{{ vm_names + [cluster_name+'-'+item.name] }}"
+        loop: "{{ cluster_nodes }}"
+        
+      - name: Check for Libvirt VM Rebooting
+        include_tasks: tasks/libvirt_reboot_vms.yaml
+        vars:
+          task_vm_names: "{{ vm_names }}"
+          task_shutdown_vms: "{{ shutdown_vms }}"
+      become: yes
+      when: libvirt_watch_for_vm_restart|bool
+
+    - name: Wait for the cluster to be fully installed
+      include_tasks: tasks/ai_svc_check_cluster_install_finished.yaml
+
+    - name: Pull cluster credentials
+      include_tasks: tasks/ai_svc_query_cluster_credentials.yaml
+
+    - name: Deploy default post-installation cluster workloads
+      include_tasks: "{{ item }}"
+      with_fileglob:
+        - post-tasks/*.yml
+        - post-tasks/*.yaml

@@ -1,0 +1,31 @@
+{
+  "api_version":"3.1.0",
+  "metadata": {"kind":"vm"},
+  "spec": {
+    "name": "{{ cluster_name }}-{{ node.name }}",
+    "description": "OpenShift {{ node.type }} node",
+    "resources": {
+      "num_sockets": {{ node.vm.cpu_sockets }},
+      "num_vcpus_per_socket": {{ node.vm.cpu_cores }},
+      "num_threads_per_core": {{ node.vm.cpu_threads }},
+      "memory_size_mib": {{ node.vm.memory }},
+      "is_vcpu_hard_pinned": false,
+      "power_state": "OFF",
+      "hardware_clock_timezone": "America/New_York",
+      "is_agent_vm": false,
+      "disable_branding": true,
+      "enable_cpu_passthrough": true,
+      "vga_console_enabled": true,
+      "machine_type": "PC",
+      "boot_config": {
+        "boot_type": "LEGACY"
+      },
+      "nic_list": {{ v3_nu_nic_config | to_json }},
+      "disk_list": {{ v3_disk_template }}
+    },
+    "cluster_reference": {
+      "kind": "cluster",
+      "uuid": "{{ nutanix_cluster_uuid }}"
+    }
+  }
+}

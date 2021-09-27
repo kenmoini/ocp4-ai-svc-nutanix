@@ -1,0 +1,62 @@
+---
+- name: Set up Disks Metadata
+  include_tasks: nutanix_vm_meta_setup_disks.yaml
+
+- name: Set up NIC Metadata
+  include_tasks: nutanix_vm_meta_setup_nics.yaml
+
+- name: Check for this VM - {{ cluster_name }}-{{ node.name }}
+  uri:
+    url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v2_base }}/vms"
+    return_content: yes
+    method: GET
+    status_code: 200
+    body_format: json
+    body: '{"filter_criteria": "name=={{ cluster_name }}-{{ node.name }}*", "filterCriteria": "name=={{ cluster_name }}-{{ node.name }}*", "filter": "name=={{ cluster_name }}-{{ node.name }}*"}'
+    force_basic_auth: yes
+    user: "{{ nutanix_prism_username }}"
+    password: "{{ nutanix_prism_password }}"
+    validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+  register: nutanix_vm_check
+
+- name: d
+  debug:
+    msg: "{{ nutanix_vm_check }}"
+
+- name: Create VM
+  uri:
+    url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v2_base }}/vms"
+    return_content: yes
+    method: POST
+    status_code: 201
+    body_format: json
+    force_basic_auth: yes
+    user: "{{ nutanix_prism_username }}"
+    password: "{{ nutanix_prism_password }}"
+    validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+    body: >
+      {
+        "name": "{{ cluster_name }}-{{ node.name }}",
+        "description": "OpenShift {{ node.type }} node",
+        "machine_type": "PC",
+        "power_state": "OFF",
+        "allow_live_migrate": false,
+        "timezone": "America/New_York",
+        "memory_reservation_mb": {{ node.vm.memory }},
+        "memory_mb": {{ node.vm.memory }},
+        "num_vcpus": {{ node.vm.cpu_sockets }},
+        "num_cores_per_vcpu": {{ node.vm.cpu_cores }},
+        "vm_nics": {{ nu_nic_config | to_json }},
+        "vm_disks": {{ vm_disk_config | to_json }},
+        "vm_features": {
+          "AGENT_VM": false,
+          "VGA_CONSOLE": true
+        }
+      }
+  when: nutanix_vm_check.json.entities | length == 0
+  register: nutanix_create_vm_info
+
+- name: D
+  fail:
+    msg: "{{ nutanix_create_vm_info }}"
+  when: nutanix_vm_check.skipped is defined and not nutanix_vm_check.skipped

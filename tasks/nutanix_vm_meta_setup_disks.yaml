@@ -1,0 +1,53 @@
+---
+
+- name: Initialize scoped vars
+  set_fact:
+    vm_disk_config:
+      - is_cdrom: true
+        vm_disk_clone:
+          storage_container_uuid: "{{ nutanix_image_storage_container_uuid }}"
+          disk_address:
+            device_bus: IDE
+            device_index: 0
+            disk_label: IDE.0
+            is_cdrom: true
+            vmdisk_uuid: "{{ nutanix_ocp_ai_iso_vm_disk_uuid }}"
+  
+    vm_new_disk:
+      device_properties:
+        device_type: DISK
+        disk_address:
+          adapter_type: SCSI
+          device_index: 0
+      disk_size_mib: "{{ (node.vm.disk_size * 1024) | int }}"
+      storage_config:
+        storage_container_reference:
+          kind: storage_container
+          name: "{{ nutanix_prism_vm_storage_container_name }}"
+          uuid: "{{ nutanix_vm_storage_container_uuid }}"
+  
+    v3_disks:
+      - device_properties:
+          device_type: CDROM
+          disk_address:
+            adapter_type: IDE
+            device_index: 0
+        data_source_reference:
+          kind: image
+          uuid: "{{ nutanix_ocp_ai_iso_uuid }}"
+        storage_config:
+          storage_container_reference:
+            kind: storage_container
+            uuid: "{{ nutanix_image_storage_container_uuid }}"
+
+      - device_properties:
+          device_type: DISK
+          disk_address:
+            adapter_type: SCSI
+            device_index: 0
+        disk_size_mib: "{{ (node.vm.disk_size|int * 1024) | int }}"
+        storage_config:
+          storage_container_reference:
+            kind: storage_container
+            name: "{{ nutanix_prism_vm_storage_container_name }}"
+            uuid: "{{ nutanix_vm_storage_container_uuid }}"

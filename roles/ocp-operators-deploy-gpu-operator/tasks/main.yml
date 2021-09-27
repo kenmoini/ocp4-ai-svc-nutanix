@@ -1,0 +1,70 @@
+---
+# tasks file for ocp-operators-deploy-gpu-operator
+
+- name: Get Cluster Version
+  k8s_info:
+    api_version: config.openshift.io/v1
+    kind: ClusterVersion
+    name: version
+  register: r_cluster_version
+
+- name: set cluster_version
+  set_fact:
+    cluster_version_long: "{{ r_cluster_version.resources[0].status.desired.version|string }}"
+
+- name: set cluster_version_split
+  set_fact:
+    cluster_version_split: "{{ cluster_version_long.split('.') }}"
+
+- name: set cluster_version_short
+  set_fact:
+    cluster_version_short: "{{ cluster_version_split[0] + '.' + cluster_version_split[1] }}"
+
+- name: create project for GPU Operator
+  k8s:
+    state: present
+    kind: Project
+    api_version: project.openshift.io/v1
+    definition:
+      metadata:
+        name: "{{ operator_namespace }}"
+        annotations:
+          openshift.io/description: "Resources for the GPU Operator"
+          openshift.io/display-name: "GPU Operator"
+        labels:
+          openshift.io/cluster-monitoring: "true"
+      spec: {}
+
+- name: Create GPU Operator Objects
+  k8s:
+    state: present
+    merge_type:
+    - strategic-merge
+    - merge
+    definition: "{{ lookup('template', template_file ) | from_yaml }}"
+  loop:
+  - ./templates/subscription.yaml.j2
+  loop_control:
+    loop_var: template_file
+
+- name: Wait for the GPU Operator to come online
+  k8s_info:
+    api_version: apiextensions.k8s.io/v1beta1
+    kind: CustomResourceDefinition
+    name: clusterpolicies.nvidia.com
+  register: gpu_crd
+  retries: 200
+  delay: 10
+  until: gpu_crd.resources | list | length == 1
+
+- name: Deploy Cluster Policy
+  k8s:
+    state: present
+    merge_type:
+    - strategic-merge
+    - merge
+    definition: "{{ lookup('file', template_file ) | from_yaml }}"
+  loop:
+  - "./files/clusterpolicy-{{ cluster_version_short }}.yaml"
+  loop_control:
+    loop_var: template_file

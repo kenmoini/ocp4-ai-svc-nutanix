@@ -1,0 +1,79 @@
+---
+- name: Get VM Info
+  uri:
+    url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms/list"
+    return_content: yes
+    method: POST
+    status_code: 200
+    body_format: json
+    body: '{"kind":"vm", "filter": "vm_name=={{ cluster_name }}-{{ node.name }}"}'
+    force_basic_auth: yes
+    user: "{{ nutanix_prism_username }}"
+    password: "{{ nutanix_prism_password }}"
+    validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+  register: nutanix_redefined_vm_info
+
+- name: Add VM Disks as VM redefinitions
+  block:
+
+  - name: Set fact for new disk to attach
+    set_fact:
+      new_disk:
+        device_properties:
+          device_type: DISK
+          disk_address:
+            adapter_type: SCSI
+            device_index: 0
+        disk_size_mib: "{{ (node.vm.disk_size|int * 1024) | int }}"
+        storage_config:
+          storage_container_reference:
+            kind: storage_container
+            name: "{{ nutanix_prism_vm_storage_container_name }}"
+            uuid: "{{ nutanix_vm_storage_container_uuid }}"
+
+  - name: Combine old and new disk_lists
+    set_fact:
+      new_disks: "{{ nutanix_redefined_vm_info.json.entities[0].spec.resources.disk_list + [new_disk] }}"
+      old_resources: "{{ nutanix_redefined_vm_info.json.entities[0].spec.resources }}"
+
+  - name: Redefine VM
+    uri:
+      url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms/{{ nutanix_vm_task_info.json.entity_list[0].entity_id }}"
+      return_content: yes
+      method: PUT
+      status_code: 202
+      body_format: json
+      force_basic_auth: yes
+      user: "{{ nutanix_prism_username }}"
+      password: "{{ nutanix_prism_password }}"
+      validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+      #body: "{{ revised_body }}"
+      body: >
+        {
+          "metadata": {
+            "kind": "vm",
+            "spec_version": {{ nutanix_redefined_vm_info.json.entities[0].metadata.spec_version | int }}
+          },
+          "spec": {
+            "name": "{{ nutanix_redefined_vm_info.json.entities[0].spec.name }}",
+            "resources": {
+              "disk_list": {{ new_disks }},
+              "num_sockets": {{ old_resources.num_sockets | int }},
+              "num_vcpus_per_socket": {{ old_resources.num_vcpus_per_socket | int }},
+              "num_threads_per_core": {{ old_resources.num_threads_per_core | int }},
+              "memory_size_mib": {{ old_resources.memory_size_mib | int }},
+              "is_vcpu_hard_pinned": false,
+              "power_state": "ON",
+              "hardware_clock_timezone": "{{ old_resources.hardware_clock_timezone }}",
+              "is_agent_vm": false,
+              "disable_branding": true,
+              "machine_type": "{{ old_resources.machine_type }}",
+              "nic_list": {{ old_resources.nic_list }},
+              "gpu_list": {{ old_resources.gpu_list }},
+              "vga_console_enabled": true,
+            }
+          }
+        }
+    register: nutanix_attach_vm_disk_info
+
+  when: nutanix_redefined_vm_info.json.entities[0].spec.resources.disk_list | length == 1

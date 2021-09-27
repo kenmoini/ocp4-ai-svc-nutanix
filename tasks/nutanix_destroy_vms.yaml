@@ -1,0 +1,34 @@
+---
+- name: Check for this VM
+  uri:
+    url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms/list"
+    return_content: yes
+    method: POST
+    status_code: 200
+    body_format: json
+    body: '{"kind":"vm", "filter": "vm_name=={{ cluster_name }}-{{ node.name }}"}'
+    force_basic_auth: yes
+    user: "{{ nutanix_prism_username }}"
+    password: "{{ nutanix_prism_password }}"
+    validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+  register: nutanix_vm_check
+
+- name: Set VM UUID
+  set_fact:
+    nutanix_vm_uuid: "{{ vm.metadata.uuid }}"
+  loop: "{{ nutanix_vm_check.json.entities }}"
+  loop_control:
+    loop_var: vm
+
+- name: Delete VM
+  uri:
+    url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms/{{ nutanix_vm_uuid }}"
+    return_content: yes
+    method: DELETE
+    status_code: 202
+    body_format: json
+    force_basic_auth: yes
+    user: "{{ nutanix_prism_username }}"
+    password: "{{ nutanix_prism_password }}"
+    validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+  when: nutanix_vm_uuid is defined

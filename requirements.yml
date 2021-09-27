@@ -1,0 +1,5 @@
+---
+collections:
+  - community.crypto
+  - community.okd
+  - kubernetes.core

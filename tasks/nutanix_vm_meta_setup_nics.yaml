@@ -1,0 +1,12 @@
+---
+- name: Initialize scoped vars
+  set_fact:
+    nu_nic_config: []
+    v3_nu_nic_config: []
+
+- name: Set NIC Config
+  include_tasks: nutanix_vm_meta_setup_nic_facts.yaml
+  loop: "{{ node.interfaces }}"
+  loop_control:
+    loop_var: iface
+    label: "{{ iface.name }} on {{ cluster_name }}-{{ node.name }}"

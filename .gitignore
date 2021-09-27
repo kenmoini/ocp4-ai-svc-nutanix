@@ -1,0 +1,13 @@
+vars/idp-ldap.yaml
+vars/idp-ldap.yml
+vars/add-to-acm.yaml
+vars/add-to-acm.yaml
+vars/assisted-service.yml
+vars/assisted-service.yaml
+vars/nutanix-config.yaml
+vars/nutanix-config.yml
+!example_vars/*
+/*cluster-config.yml*
+/*cluster-config.yaml
+.generated/
+*.iso

@@ -1,0 +1,38 @@
+[
+  {
+    "device_properties": {
+      "device_type": "CDROM"
+    },
+    "data_source_reference": {
+      "kind": "image",
+      "uuid": "{{ nutanix_ocp_ai_iso_uuid }}"
+    },
+    "storage_config": {
+      "storage_container_reference": {
+        "kind": "storage_container",
+        "uuid": "{{ nutanix_image_storage_container_uuid }}"
+      }
+    }
+  },
+  {
+    "device_properties": {
+      "device_type": "DISK",
+      "disk_address": {
+        "adapter_type": "SCSI",
+        "device_index": 0
+      }
+    },
+    "disk_size_mib": {{ (node.vm.disk_size|int * 1024) | int }},
+    "data_source_reference": {
+      "kind": "image",
+      "uuid": "{{ nutanix_ocp_ai_iso_uuid }}"
+    },
+    "storage_config": {
+      "storage_container_reference": {
+        "kind": "storage_container",
+        "name": "{{ nutanix_prism_vm_storage_container_name }}",
+        "uuid": "{{ nutanix_vm_storage_container_uuid }}"
+      }
+    }
+  }
+]

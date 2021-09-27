@@ -1,0 +1,27 @@
+---
+# nutanix_prism_endpoint: The base endpoint of the Prism appliance
+nutanix_prism_endpoint: https://prism.example.com:9440
+
+# nutanix_prism_skip_ssl_verification disables SSL Certificate Chain Verification when enabled
+nutanix_prism_skip_ssl_verification: true
+
+# nutanix_prism_authentication_type: Currently supports `basic` username/password
+nutanix_prism_authentication_type: basic
+nutanix_prism_username: admin
+nutanix_prism_password: Passw0rd123!
+
+# nutanix_prism_cluster_name is the name of the network the OpenShift VMs will be attached to
+nutanix_prism_cluster_name: MyCluster
+
+# nutanix_prism_network_name is the name of the network the OpenShift VMs will be attached to
+nutanix_prism_network_name: MyLAN
+
+# nutanix_prism_vm_storage_container_name is the name of the Storage Container the OpenShift VMs will use for their Disks
+nutanix_prism_vm_storage_container_name: machines
+
+# nutanix_prism_image_storage_container_name is the name of the Storage Container that will be used when uploading the ISO to the Image Configuration service
+nutanix_prism_image_storage_container_name: images
+
+######################### General Options
+nutanix_prism_api_v3_base: "/api/nutanix/v3"
+nutanix_prism_api_v2_base: "/PrismGateway/services/rest/v2.0"
