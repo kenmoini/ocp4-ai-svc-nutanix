@@ -161,10 +161,6 @@
               echo $!
             register: python_script_out
 
-          - name: 
-            debug:
-              msg: "{{ python_script_out }}"
-
           - name: Download the ISO locally
             get_url:
               headers: "{{ compiled_uri_headers }}"

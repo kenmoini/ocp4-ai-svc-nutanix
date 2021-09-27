@@ -1,8 +1,4 @@
 ---
-- name: Wait for 10s while the Nutanix CVM catches up
-  pause:
-    seconds: 10
-
 - name: Get VM Info - {{ cluster_name }}-{{ node.name }}
   uri:
     url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms/list"
