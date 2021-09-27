@@ -1,0 +1,17 @@
+---
+
+- name: Get Task Info
+  uri:
+    url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v2_base }}/tasks/{{ task_uuid }}"
+    return_content: yes
+    method: GET
+    status_code: 200
+    body_format: json
+    force_basic_auth: yes
+    user: "{{ nutanix_prism_username }}"
+    password: "{{ nutanix_prism_password }}"
+    validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+  register: nutanix_task_info
+  delay: 10
+  retries: 30
+  until: nutanix_task_info.json.percentage_complete == 100

@@ -2,7 +2,7 @@
 - name: Create an Assisted Installer provisioned OpenShift Cluster on Libvirt/KVM
   hosts: localhost
   connection: local
-  gather_facts: false
+  gather_facts: true
 
   vars:
     cluster_id: ""
@@ -99,12 +99,96 @@
 
     - name: Create Nutanix Infrastructure
       block:
-      - name: Create & Upload Image
+      ## Unauthed source, pass the bare image download endpoint from the AI SVC API to the Nutanix api
+      - name: Create & Upload Image from unsecured AI Svc
         include_tasks: tasks/nutanix_create_image_v2.yaml
         vars:
           image_source_uri: "{{ assisted_service_endpoint }}/clusters/{{ cluster_id }}/downloads/image"
           image_name: "ocp-ai-{{ cluster_id }}"
           image_description: "OpenShift Assisted Installer ISO for Cluster {{ cluster_name }} with Cluster ID {{ cluster_id }}"
+        when: assisted_service_authentication == "none"
+
+      - name: Create the web server and proxy the image
+        block:
+        - name: Get list of images
+          uri:
+            url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v2_base }}/images?include_vm_disk_paths=false&include_vm_disk_sizes=false'"
+            return_content: yes
+            method: GET
+            status_code: 200
+            body_format: json
+            force_basic_auth: yes
+            user: "{{ nutanix_prism_username }}"
+            password: "{{ nutanix_prism_password }}"
+            validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+          register: nutanix_images_info
+
+        - name: Set Image Info
+          set_fact:
+            nutanix_ocp_ai_iso_uuid: "{{ image.uuid }}"
+            nutanix_ocp_ai_iso_vm_disk_uuid: "{{ image.vm_disk_id }}"
+          when: image.name == "ocp-ai-{{ cluster_id }}"
+          loop: "{{ nutanix_images_info.json.entities }}"
+          loop_control:
+            loop_var: image
+
+        - name: Conditionally create the local image relay
+          block:
+          - name: Create local directory for web server
+            file:
+              state: directory
+              path: "{{ generated_asset_directory }}/{{ cluster_id }}/tmp_server"
+
+          - name: Create web server python script
+            lineinfile:
+              create: yes
+              dest: "{{ generated_asset_directory }}/{{ cluster_id }}/tmp_server/server.py"
+              mode: 0755
+              line: |
+                import os
+                from http.server import HTTPServer, CGIHTTPRequestHandler
+                # Make sure the server is created at current directory
+                os.chdir('.')
+                # Create server object listening the port 8901
+                server_object = HTTPServer(server_address=('', 8901), RequestHandlerClass=CGIHTTPRequestHandler)
+                # Start the web server
+                server_object.serve_forever()
+
+          - name: Execute python script
+            shell: |
+              cd {{ generated_asset_directory }}/{{ cluster_id }}/tmp_server
+              python3 server.py &> /dev/null &
+              echo $!
+            register: python_script_out
+
+          - name: 
+            debug:
+              msg: "{{ python_script_out }}"
+
+          - name: Download the ISO locally
+            get_url:
+              headers: "{{ compiled_uri_headers }}"
+              url: "{{ assisted_service_endpoint }}/clusters/{{ cluster_id }}/downloads/image"
+              dest: "{{ generated_asset_directory }}/{{ cluster_id }}/tmp_server/ocp-ai-{{ cluster_id }}.iso"
+
+          - name: Create & Upload Image from RH Hosted AI SVC
+            include_tasks: tasks/nutanix_create_image_v2.yaml
+            vars:
+              image_source_uri: "http://{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:8901/ocp-ai-{{ cluster_id }}.iso"
+              image_name: "ocp-ai-{{ cluster_id }}"
+              image_description: "OpenShift Assisted Installer ISO for Cluster {{ cluster_name }} with Cluster ID {{ cluster_id }}"
+
+          always:
+          - name: Stop the python web server
+            shell: "kill {{ python_script_out.stdout }}"
+            ignore_errors: yes
+
+          - name: Clean up local files
+            file:
+              state: absent
+              path: "{{ generated_asset_directory }}/{{ cluster_id }}/tmp_server"
+          when: nutanix_ocp_ai_iso_uuid is not defined
+        when: assisted_service_authentication == "bearer-token"
 
       - name: Create VMs on via Prism
         include_tasks: tasks/nutanix_create_vms_mixed_api_dumb_shit.yaml
@@ -137,26 +221,6 @@
 
     - name: Start the Cluster installation
       include_tasks: tasks/ai_svc_start_install.yaml
-
-    - name: Reboot Libvirt VMs
-      block:
-      - name: Set blank fact for VM list
-        set_fact:
-          vm_names: []
-          shutdown_vms: []
-
-      - name: Add VM Names to fact
-        set_fact:
-          vm_names: "{{ vm_names + [cluster_name+'-'+item.name] }}"
-        loop: "{{ cluster_nodes }}"
-        
-      - name: Check for Libvirt VM Rebooting
-        include_tasks: tasks/libvirt_reboot_vms.yaml
-        vars:
-          task_vm_names: "{{ vm_names }}"
-          task_shutdown_vms: "{{ shutdown_vms }}"
-      become: yes
-      when: libvirt_watch_for_vm_restart|bool
 
     - name: Wait for the cluster to be fully installed
       include_tasks: tasks/ai_svc_check_cluster_install_finished.yaml

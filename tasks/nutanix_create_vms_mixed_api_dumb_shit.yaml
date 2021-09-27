@@ -54,26 +54,15 @@
         }
     register: nutanix_create_vm_info
 
-  - name: Get Task Info
-    uri:
-      url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v2_base }}/tasks/{{ nutanix_create_vm_info.json.task_uuid }}"
-      return_content: yes
-      method: GET
-      status_code: 200
-      body_format: json
-      force_basic_auth: yes
-      user: "{{ nutanix_prism_username }}"
-      password: "{{ nutanix_prism_password }}"
-      validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
-    register: nutanix_vm_task_info
-    delay: 10
-    retries: 30
-    until: nutanix_vm_task_info.json.percentage_complete == 100
-
-  - name: Attach Disks by redefining VM via API v3...and boot
-    include_tasks: nutanix_attach_disks.yaml
+  - name: Probe for Task Info until it is complete
+    include_tasks: nutanix_probe_task_v2.yaml
+    vars:
+      task_uuid: "{{ nutanix_create_vm_info.json.task_uuid }}"
 
   when: nutanix_vm_check.json.entities | length == 0
+
+- name: Attach Disks by redefining VM via API v3
+  include_tasks: nutanix_attach_disks.yaml
 
 - name: Boot VMs
   block:
@@ -107,7 +96,3 @@
           "transition": "ON"
         }
     register: nutanix_boot_vm_info
-
-  - name: d
-    debug:
-      msg: "{{ nutanix_boot_vm_info }}"

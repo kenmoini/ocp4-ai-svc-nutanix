@@ -1,5 +1,9 @@
 ---
-- name: Get VM Info
+- name: Wait for 10s while the Nutanix CVM catches up
+  pause:
+    seconds: 10
+
+- name: Get VM Info - {{ cluster_name }}-{{ node.name }}
   uri:
     url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms/list"
     return_content: yes
@@ -18,27 +22,33 @@
 
   - name: Set fact for new disk to attach
     set_fact:
-      new_disk:
-        device_properties:
-          device_type: DISK
-          disk_address:
-            adapter_type: SCSI
-            device_index: 0
-        disk_size_mib: "{{ (node.vm.disk_size|int * 1024) | int }}"
-        storage_config:
-          storage_container_reference:
-            kind: storage_container
-            name: "{{ nutanix_prism_vm_storage_container_name }}"
-            uuid: "{{ nutanix_vm_storage_container_uuid }}"
+      new_disk: >
+        {
+          "device_properties": {
+            "device_type": "DISK",
+            "disk_address": {
+              "adapter_type": "SCSI",
+              "device_index": 0
+            }
+          },
+          "disk_size_mib": {{ (node.vm.disk_size|int * 1024) | int }},
+          "storage_config": {
+            "storage_container_reference": {
+              "kind": "storage_container",
+              "name": "{{ nutanix_prism_vm_storage_container_name }}",
+              "uuid": "{{ nutanix_vm_storage_container_uuid }}"
+            }
+          }
+        }
 
   - name: Combine old and new disk_lists
     set_fact:
       new_disks: "{{ nutanix_redefined_vm_info.json.entities[0].spec.resources.disk_list + [new_disk] }}"
       old_resources: "{{ nutanix_redefined_vm_info.json.entities[0].spec.resources }}"
 
-  - name: Redefine VM
+  - name: Redefine VM - {{ cluster_name }}-{{ node.name }}
     uri:
-      url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms/{{ nutanix_vm_task_info.json.entity_list[0].entity_id }}"
+      url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms/{{ nutanix_redefined_vm_info.json.entities[0].metadata.uuid }}"
       return_content: yes
       method: PUT
       status_code: 202
@@ -47,7 +57,6 @@
       user: "{{ nutanix_prism_username }}"
       password: "{{ nutanix_prism_password }}"
       validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
-      #body: "{{ revised_body }}"
       body: >
         {
           "metadata": {
@@ -63,7 +72,7 @@
               "num_threads_per_core": {{ old_resources.num_threads_per_core | int }},
               "memory_size_mib": {{ old_resources.memory_size_mib | int }},
               "is_vcpu_hard_pinned": false,
-              "power_state": "ON",
+              "power_state": "OFF",
               "hardware_clock_timezone": "{{ old_resources.hardware_clock_timezone }}",
               "is_agent_vm": false,
               "disable_branding": true,
@@ -71,9 +80,24 @@
               "nic_list": {{ old_resources.nic_list }},
               "gpu_list": {{ old_resources.gpu_list }},
               "vga_console_enabled": true,
+              "boot_config": {
+                "boot_device": {
+                  "disk_address": {
+                    "adapter_type": "SCSI",
+                    "device_index": 0
+                  }
+                },
+                "boot_device_order_list": ["DISK", "CDROM"],
+                "boot_type": "LEGACY"
+              }
             }
           }
         }
     register: nutanix_attach_vm_disk_info
+
+  - name: Probe for Task Info until it is complete
+    include_tasks: nutanix_probe_task_v2.yaml
+    vars:
+      task_uuid: "{{ nutanix_attach_vm_disk_info.json.status.execution_context.task_uuid }}"
 
   when: nutanix_redefined_vm_info.json.entities[0].spec.resources.disk_list | length == 1

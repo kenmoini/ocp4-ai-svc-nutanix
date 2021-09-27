@@ -23,10 +23,6 @@
       }
     },
     "disk_size_mib": {{ (node.vm.disk_size|int * 1024) | int }},
-    "data_source_reference": {
-      "kind": "image",
-      "uuid": "{{ nutanix_ocp_ai_iso_uuid }}"
-    },
     "storage_config": {
       "storage_container_reference": {
         "kind": "storage_container",

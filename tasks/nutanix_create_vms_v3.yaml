@@ -13,10 +13,6 @@
   set_fact:
     v3_vm_template: "{{ lookup('template', 'templates/nutanix_vm_v3_body.json.j2') }}"
 
-- name: d
-  debug:
-    msg: "{{ v3_vm_template | string }}"
-
 - name: Check for this VM
   uri:
     url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms/list"
