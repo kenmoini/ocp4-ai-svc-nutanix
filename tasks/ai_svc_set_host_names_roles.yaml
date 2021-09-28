@@ -29,6 +29,10 @@
         status_code: 200
       register: ai_svc_list_of_hosts
 
+    - name: d
+      debug:
+        msg: "{{ ai_svc_list_of_hosts }}"
+
     - name: Template out the JSON for the Host Names and Roles
       template:
         src: templates/host_names_and_roles.json.j2

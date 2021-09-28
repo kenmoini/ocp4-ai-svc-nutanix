@@ -1,12 +1,12 @@
 ---
 
-- name: Set NIC Config
+- name: Set NIC Config - {{ node.name }}
   set_fact:
     nic:
       mac_address: "{{ iface.mac_address }}"
       is_connected: true
       network_uuid: "{{ nutanix_network_uuid }}"
-      #adapter_type: E1000e
+      #adapter_type: Vmxnet3
     v3_nic:
       nic_type: NORMAL_NIC
       mac_address: "{{ iface.mac_address }}"
@@ -17,7 +17,7 @@
         name: "{{ nutanix_prism_network_name }}"
         uuid: "{{ nutanix_network_uuid }}"
 
-- name: combine facts
+- name: combine facts - {{ node.name }}
   set_fact:
     nu_nic_config: "{{ nu_nic_config + [nic] }}"
     v3_nu_nic_config: "{{ v3_nu_nic_config + [v3_nic] }}"

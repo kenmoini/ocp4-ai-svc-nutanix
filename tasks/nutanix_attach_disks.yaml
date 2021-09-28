@@ -67,11 +67,10 @@
               "num_vcpus_per_socket": {{ old_resources.num_vcpus_per_socket | int }},
               "num_threads_per_core": {{ old_resources.num_threads_per_core | int }},
               "memory_size_mib": {{ old_resources.memory_size_mib | int }},
-              "is_vcpu_hard_pinned": false,
-              "power_state": "OFF",
               "hardware_clock_timezone": "{{ old_resources.hardware_clock_timezone }}",
+              "power_state": "OFF",
               "is_agent_vm": false,
-              "disable_branding": true,
+              "disable_branding": false,
               "machine_type": "{{ old_resources.machine_type }}",
               "nic_list": {{ old_resources.nic_list }},
               "gpu_list": {{ old_resources.gpu_list }},
@@ -85,11 +84,22 @@
                 },
                 "boot_device_order_list": ["DISK", "CDROM"],
                 "boot_type": "LEGACY"
-              }
+              },
+              "serial_port_list": [
+                {
+                  "is_connected": true,
+                  "index": 0
+                },
+                {
+                  "is_connected": true,
+                  "index": 1
+                }
+              ]
             }
           }
         }
     register: nutanix_attach_vm_disk_info
+#              "is_vcpu_hard_pinned": false,
 
   - name: Probe for Task Info until it is complete
     include_tasks: nutanix_probe_task_v2.yaml

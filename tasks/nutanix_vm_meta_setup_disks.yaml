@@ -1,6 +1,6 @@
 ---
 
-- name: Initialize scoped vars
+- name: Initialize scoped vars - {{ node.name }}
   set_fact:
     vm_disk_config:
       - is_cdrom: true

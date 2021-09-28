@@ -1,12 +1,12 @@
 ---
 
-- name: Set up Disks Metadata
+- name: Set up Disks Metadata - {{ cluster_name }}-{{ node.name }}
   include_tasks: nutanix_vm_meta_setup_disks.yaml
 
-- name: Set up NIC Metadata
+- name: Set up NIC Metadata - {{ cluster_name }}-{{ node.name }}
   include_tasks: nutanix_vm_meta_setup_nics.yaml
 
-- name: Check for this VM
+- name: Check for this VM - {{ cluster_name }}-{{ node.name }}
   uri:
     url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms/list"
     return_content: yes
@@ -20,9 +20,9 @@
     validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
   register: nutanix_vm_check
 
-- name: Create VM processes
+- name: Create VM processes - {{ cluster_name }}-{{ node.name }}
   block:
-  - name: Create VM
+  - name: Create VM - {{ cluster_name }}-{{ node.name }}
     uri:
       url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v2_base }}/vms"
       return_content: yes
@@ -33,25 +33,35 @@
       user: "{{ nutanix_prism_username }}"
       password: "{{ nutanix_prism_password }}"
       validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+#          "allow_live_migrate": false,
       body: >
         {
           "name": "{{ cluster_name }}-{{ node.name }}",
           "description": "OpenShift {{ node.type }} node",
           "machine_type": "PC",
           "power_state": "OFF",
-          "allow_live_migrate": false,
-          "timezone": "America/New_York",
+          "timezone": "UTC",
           "memory_reservation_mb": {{ node.vm.memory }},
           "memory_mb": {{ node.vm.memory }},
           "num_vcpus": {{ node.vm.cpu_sockets }},
           "num_cores_per_vcpu": {{ node.vm.cpu_cores }},
           "vm_nics": {{ nu_nic_config | to_json }},
           "vm_disks": {{ vm_disk_config | to_json }},
-          "vm_features": {
-            "AGENT_VM": false,
-            "VGA_CONSOLE": true
-          }
+          "serial_ports": [
+            {
+              "type": "SERVER",
+              "index": 0
+            },
+            {
+              "type": "SERVER",
+              "index": 1
+            }
+          ]
         }
+#          "vm_features": {
+#            "AGENT_VM": false,
+#            "VGA_CONSOLE": true
+#          }
     register: nutanix_create_vm_info
 
   - name: Probe for Task Info until it is complete
@@ -61,10 +71,10 @@
 
   when: nutanix_vm_check.json.entities | length == 0
 
-- name: Attach Disks by redefining VM via API v3
+- name: Attach Disks to {{ cluster_name }}-{{ node.name }} by redefining VM via API v3
   include_tasks: nutanix_attach_disks.yaml
 
-- name: Boot VMs
+- name: Boot VM - {{ cluster_name }}-{{ node.name }}
   block:
   - name: Get VM UUID
     uri:
@@ -80,7 +90,7 @@
       validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
     register: nutanix_vm_check
 
-  - name: Boot VM with API v2
+  - name: Boot {{ cluster_name }}-{{ node.name }} VM with API v2
     uri:
       url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v2_base }}/vms/{{ nutanix_vm_check.json.entities[0].metadata.uuid }}/set_power_state"
       return_content: yes
@@ -96,3 +106,4 @@
           "transition": "ON"
         }
     register: nutanix_boot_vm_info
+    when: nutanix_vm_check.json.entities[0].status.resources.power_state != "ON"

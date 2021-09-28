@@ -4,7 +4,7 @@
     nu_nic_config: []
     v3_nu_nic_config: []
 
-- name: Set NIC Config
+- name: Set NIC Config for {{ node.name }}
   include_tasks: nutanix_vm_meta_setup_nic_facts.yaml
   loop: "{{ node.interfaces }}"
   loop_control:
