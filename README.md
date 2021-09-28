@@ -39,7 +39,7 @@ ansible-galaxy collection install -r requirements.yml
 ## Modify the Variables files
 
 - Copy `example_vars/cluster-config.yaml` to the working directory, ideally with a prefix of the cluster name - modify as needed
-- Modify the other files in `example_vars/` and copy to `vars/` as you see fit, in case you need to add the new cluster to an ACM Hub for instance
+- Modify the other files in `example_vars/` and copy to `vars/` as you see fit, in case you need to add the new cluster to an ACM Hub for instance - at a minimum, you need to copy/modify the `example_vars/assisted-service.yaml` and `example_vars/nutanix-config.yaml` files
 
 ## Using the Red Hat Console/Cloud hosted Installer Service
 
