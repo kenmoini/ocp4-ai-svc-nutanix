@@ -1,0 +1,5 @@
+---
+# defaults file for ocp4-nutanix-csi
+
+operator_namespace: ntnx-system
+secret_name: ntnx-secret
