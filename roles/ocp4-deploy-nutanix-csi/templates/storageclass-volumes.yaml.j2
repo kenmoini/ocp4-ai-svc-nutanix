@@ -15,7 +15,7 @@ parameters:
   csi.storage.k8s.io/controller-expand-secret-namespace: {{ operator_namespace }}
   csi.storage.k8s.io/fstype: {{ nutanix_csi_volumes_filesystem_type }}
   dataServiceEndPoint: {{ nutanix_csi_volumes_dataservices_ip }}:3260
-  flashMode: {% if nutanix_csi_volumes_flashmode %}ENABLED{% else %}DISABLED{% endif %}
+  flashMode: {{ 'ENABLED' if nutanix_csi_volumes_flashmode == 'true' else 'DISABLED' }}
   storageContainer: {{ nutanix_csi_volumes_storage_container_name }}
   storageType: NutanixVolumes
 reclaimPolicy: Delete
