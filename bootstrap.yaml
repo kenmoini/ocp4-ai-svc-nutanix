@@ -1,5 +1,5 @@
 ---
-- name: Create an Assisted Installer provisioned OpenShift Cluster on Libvirt/KVM
+- name: Create an Assisted Installer provisioned OpenShift Cluster on Nutanix AHV via Prism
   hosts: localhost
   connection: local
   gather_facts: true
