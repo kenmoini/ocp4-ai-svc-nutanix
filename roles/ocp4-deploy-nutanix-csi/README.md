@@ -33,6 +33,7 @@ nutanix_csi_volumes_flashmode: false
 nutanix_csi_deploy_iscsid_machineconfig: true
 
 ### Nutanix Files StorageClass, NFS Based, RWO and RWX supported
+#### Assumes the NFS Store has All Users Squashed to nobody:nobody (65534:65534)
 nutanix_csi_deploy_files_storageclass: false
 nutanix_csi_files_nfs_server: 5.6.7.8
 nutanix_csi_files_nfs_path: somePath
