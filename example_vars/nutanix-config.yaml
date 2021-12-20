@@ -25,22 +25,25 @@ nutanix_prism_vm_storage_container_name: machines
 nutanix_prism_image_storage_container_name: images
 
 ######################### Nutanix CSI Deployment Role Variables
-### Nutanix Volumes StorageClass, iSCSI based, no RWX
-nutanix_csi_deploy_volumes_storageclass: true
+### General Nutanix CSI Operator Configuration
 nutanix_csi_prism_hostname: "{{ nutanix_prism_hostname }}"
 nutanix_csi_prism_port: "{{ nutanix_prism_port }}"
 nutanix_csi_prism_username: "{{ nutanix_prism_username }}"
 nutanix_csi_prism_password: "{{ nutanix_prism_password }}"
+
+## nutanix_csi_deploy_iscsid_machineconfig is required for the Nutanix Volumes
+##  StorageClass to enable the iSCSId SystemD Service to bind the PVCs to the Pods
+nutanix_csi_deploy_iscsid_machineconfig: true
+
+### Nutanix Volumes StorageClass, iSCSI based, no RWX
+nutanix_csi_deploy_volumes_storageclass: true
 nutanix_csi_volumes_storage_container_name: "{{ nutanix_prism_vm_storage_container_name }}"
 nutanix_csi_volumes_dataservices_ip: 1.2.3.4
-
-## nutanix_csi_deploy_iscsid_machineconfig is required to enable the iSCSId SystemD Service to bind the PVCs to the Pods
-nutanix_csi_deploy_iscsid_machineconfig: true
 
 ### Nutanix Files StorageClass, NFS Based, RWO and RWX supported
 nutanix_csi_deploy_files_storageclass: false
 nutanix_csi_files_nfs_server: 5.6.7.8
-nutanix_csi_files_nfs_path: somePath
+nutanix_csi_files_nfs_path: /sharePath
 
 ######################### General Variables, no need to edit
 nutanix_prism_endpoint: "https://{{ nutanix_prism_hostname }}:{{ nutanix_prism_port }}"

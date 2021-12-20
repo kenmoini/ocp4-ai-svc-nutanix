@@ -117,20 +117,39 @@
   retries: 30
   when: nutanix_csi_deploy_volumes_storageclass|bool
 
-- name: Create Files StorageClass
-  k8s:
-    state: present
-    merge_type:
-    - strategic-merge
-    - merge
-    definition: "{{ lookup('template', template_file ) | from_yaml }}"
-  loop:
-  - ./templates/storageclass-files.yaml.j2
-  loop_control:
-    loop_var: template_file
-  until: k8s_run is not failed
-  delay: 10
-  retries: 30
+- name: Deploying Nutanix File Server (NFS) StorageClass
+  block:
+
+  - name: Create Files StorageClass
+    k8s:
+      state: present
+      merge_type:
+      - strategic-merge
+      - merge
+      definition: "{{ lookup('template', template_file ) | from_yaml }}"
+    loop:
+    - ./templates/storageclass-files.yaml.j2
+    loop_control:
+      loop_var: template_file
+    until: k8s_run is not failed
+    delay: 10
+    retries: 30
+
+  - name: Apply NFS SELinux Patch
+    k8s:
+      state: present
+      merge_type:
+      - strategic-merge
+      - merge
+      definition: "{{ lookup('template', template_file ) | from_yaml }}"
+    loop:
+    - ./templates/enable-nfs-pv-selinux-workaround-machineconfig.yaml.j2
+    loop_control:
+      loop_var: template_file
+    until: k8s_run is not failed
+    delay: 10
+    retries: 30
+
   when: nutanix_csi_deploy_files_storageclass|bool
 
 - name: Create iSCSI Service MachineConfig
