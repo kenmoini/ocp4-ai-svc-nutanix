@@ -1,4 +1,5 @@
 ---
+
 - name: Set appropriate next steps
   set_fact:
     valid_next_steps:

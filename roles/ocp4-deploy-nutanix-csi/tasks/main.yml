@@ -23,6 +23,19 @@
   delay: 10
   retries: 30
 
+- name: Create Operator OperatorGroup
+  k8s:
+    state: present
+    apply: yes
+    definition: "{{ lookup('template', template_file ) | from_yaml }}"
+  loop:
+  - ./templates/operatorgroup.yaml.j2
+  loop_control:
+    loop_var: template_file
+  until: k8s_run is not failed
+  delay: 10
+  retries: 30
+
 - name: Create Operator subscription
   k8s:
     state: present
@@ -32,19 +45,6 @@
     definition: "{{ lookup('template', template_file ) | from_yaml }}"
   loop:
   - ./templates/subscription.yaml.j2
-  loop_control:
-    loop_var: template_file
-  until: k8s_run is not failed
-  delay: 10
-  retries: 30
-
-- name: Create Operator OperatorGroup
-  k8s:
-    state: present
-    apply: yes
-    definition: "{{ lookup('template', template_file ) | from_yaml }}"
-  loop:
-  - ./templates/operatorgroup.yaml.j2
   loop_control:
     loop_var: template_file
   until: k8s_run is not failed

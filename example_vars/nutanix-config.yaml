@@ -1,6 +1,6 @@
 ---
-# nutanix_prism_hostname: The IP or Hostname of your Prism instance
-nutanix_prism_hostname: ahv-cvm.kemo.labs
+# nutanix_prism_hostname: The IP or Hostname of your Prism Element instance
+nutanix_prism_hostname: ahv-rocinante-cvm.kemo.labs
 # nutanix_prism_port: The port Prism is accessible from
 nutanix_prism_port: 9440
 
@@ -30,6 +30,7 @@ nutanix_prism_api_v3_base: "/api/nutanix/v3"
 nutanix_prism_api_v2_base: "/PrismGateway/services/rest/v2.0"
 
 ######################### CSI Deployment Role Variables
+deploy_nutanix_csi: true
 nutanix_csi_prism_hostname: "{{ nutanix_prism_hostname }}"
 nutanix_csi_prism_port: "{{ nutanix_prism_port }}"
 nutanix_csi_prism_username: "{{ nutanix_prism_username }}"

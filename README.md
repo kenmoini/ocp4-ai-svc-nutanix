@@ -25,10 +25,18 @@ What this Ansible content will do is the following:
 - Start the cluster installation on the AI Svc
 - Wait for the cluster to be fully installed
 - Pull cluster credentials from the AI Svc
-- Perform cluster bespoke post-configuration, anything in `post-tasks/`
-- Perform cluster role-based post-configuration, roles as defined via the `extra_roles` variable
+- Perform cluster role-based post-configuration, roles as defined via the `extra_roles` variable, by default deploying the Nutanix CSI, a Red Matrix login, and a Mario Game.
 
-## Installing Ansible Collections
+## Usage
+
+### Clone the Repo
+
+```bash
+git clone https://github.com/kenmoini/ocp4-ai-svc-nutanix.git
+cd ocp4-ai-svc-nutanix/
+```
+
+### Installing Ansible Collections
 
 In order to run this Playbook you'll need to have the needed Ansible Collections already installed - you can do so easily by running the following command:
 
@@ -36,12 +44,23 @@ In order to run this Playbook you'll need to have the needed Ansible Collections
 ansible-galaxy collection install -r requirements.yml
 ```
 
-## Modify the Variables files
+### Modify the Variables files
 
 - Copy `example_vars/cluster-config.yaml` to the working directory, ideally with a prefix of the cluster name - modify as needed
 - Modify the other files in `example_vars/` and copy to `vars/` as you see fit, in case you need to add the new cluster to an ACM Hub for instance - at a minimum, you need to copy/modify the `example_vars/assisted-service.yaml` and `example_vars/nutanix-config.yaml` files
 
-## Using the Red Hat Console/Cloud hosted Installer Service
+```bash
+# OCP Cluster Configuration Information
+cp example_vars/cluster-config.yaml my-ocp-cluster.cluster-config.yaml
+vi my-ocp-cluster.cluster-config.yaml
+
+# Other variable files
+cp example_vars/assisted-service.yaml vars/assisted-service.yaml
+cp example_vars/nutanix-config.yaml vars/nutanix-config.yaml
+
+```
+
+### Using the Red Hat Console/Cloud hosted Installer Service
 
 Instead of hosting the Assisted Installer Service yourself, you can use the AI Service hosted online by Red Hat: https://console.redhat.com/openshift/assisted-installer/clusters
 
@@ -67,14 +86,8 @@ assisted_service_authentication_api_bearer_token: yourOfflineToken
 With the needed variables altered, you can run the Playbook with the following command:
 
 ```bash
-ansible-playbook -e "@cluster-name.cluster-config.yaml" bootstrap.yaml
+ansible-playbook -e "@my-ocp-cluster.cluster-config.yaml" bootstrap.yaml
 ```
-
-## Available Tags
-
-- `create_nutanix_cluster` - Create the VMs, skipping can speed up things if retrying post-provisioning tasks
-- `post_tasks_1` - Default post-cluster provisioning Tasks, adding Matrix Login, NFS StorageClass, NFS for Image Registry, & LDAP IdP
-- `post_tasks_2` - Connect the new cluster to an Advanced Cluster Management Hub
 
 ## Background Information & Sources
 
@@ -85,7 +98,8 @@ ansible-playbook -e "@cluster-name.cluster-config.yaml" bootstrap.yaml
 
 ## Extra Information
 
-- Last tested on 8/10/2021 with:
+- Last tested with the [Red Hat hosted Assisted Installer](https://console.redhat.com/openshift/assisted-installer/clusters) on 12/19/21
+- Last tested offline on 8/10/2021 with:
   - quay.io/ocpmetal/ocp-metal-ui:stable-candidate.10.08.2021-08.28
   - quay.io/ocpmetal/assisted-service:stable-candidate.10.08.2021-08.28
   - quay.io/ocpmetal/postgresql-12-centos7

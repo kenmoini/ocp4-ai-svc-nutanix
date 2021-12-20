@@ -1,4 +1,6 @@
 ---
+# This file isn't really used to be honest
+
 #####################################################################
 # Cilium Networking default configuration
 cilium_networking_git_branch: master

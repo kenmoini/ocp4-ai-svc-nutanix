@@ -1,5 +1,4 @@
 ---
-
 - name: Template out the deployment.json file
   template:
     src: templates/deployment.json.j2

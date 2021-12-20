@@ -2,7 +2,7 @@
   "kind": "Cluster",
   "name": "{{ cluster_name }}",
   "openshift_version": "{{ cluster_full_version }}",
-  "ocp_release_image": "{{ cluster_image }}",
+  "ocp_release_image": "quay.io/openshift-release-dev/ocp-release:{{ cluster_full_version }}-x86_64",
   "base_dns_domain": "{{ cluster_domain }}",
   "hyperthreading": "all",
   "cluster_network_cidr": "{{ cluster_network_cidr }}",

@@ -1,5 +1,5 @@
 ---
-- name: Removes a cluster from the AI Service and Libvirt/KVM
+- name: Removes a cluster from the AI Service and Nutanix AHV/Prism
   hosts: localhost
   connection: local
   gather_facts: false
