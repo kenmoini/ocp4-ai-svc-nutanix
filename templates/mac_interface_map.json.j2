@@ -4,5 +4,6 @@
     "mac_address": "{{ iface.mac_address }}",
     "logical_nic_name": "{{ iface.name }}"
   }{% if iface.name != ocp_node.interfaces[-1].name %},{% endif %}
+  
 {% endfor %}
 ]
