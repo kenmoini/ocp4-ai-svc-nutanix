@@ -4,10 +4,8 @@
   register: program_check
   ignore_errors: true
   with_items:
-    - virt-install
     - curl
     - jq
-    - git
   
 - name: Fail if needed programs are not found
   fail:

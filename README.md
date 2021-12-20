@@ -89,14 +89,20 @@ With the needed variables altered, you can run the Playbook with the following c
 ansible-playbook -e "@my-ocp-cluster.cluster-config.yaml" bootstrap.yaml
 ```
 
+## Destroying the Cluster
+
+If you are done with the cluster or some error occured you can quickly delete it from the Nutanix environment, the Assisted Installer Service, and the local assets:
+
+```bash
+ansible-playbook -e "@my-ocp-cluster.cluster-config.yaml" destroy.yaml
+```
+
 ## Background Information & Sources
 
 - assisted-service Source: https://github.com/openshift/assisted-service
 - assisted-service OnPrem Deployment: https://github.com/sonofspike/assisted-service-onprem
 - Podman & Systemd AI Svc Deployment: https://github.com/kenmoini/homelab/blob/main/ansible-collections/deploy-caas-ocp-assisted-installer.yml
 - Red Hat Console hosted Assisted Installer Service: https://console.redhat.com/openshift/assisted-installer/clusters
-
-## Extra Information
 
 - Last tested with the [Red Hat hosted Assisted Installer](https://console.redhat.com/openshift/assisted-installer/clusters) on 12/19/21
 - Last tested offline on 8/10/2021 with:
