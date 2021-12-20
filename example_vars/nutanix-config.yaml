@@ -33,6 +33,7 @@ nutanix_csi_prism_username: "{{ nutanix_prism_username }}"
 nutanix_csi_prism_password: "{{ nutanix_prism_password }}"
 nutanix_csi_volumes_storage_container_name: "{{ nutanix_prism_vm_storage_container_name }}"
 nutanix_csi_volumes_dataservices_ip: 1.2.3.4
+
 ## nutanix_csi_deploy_iscsid_machineconfig is required to enable the iSCSId SystemD Service to bind the PVCs to the Pods
 nutanix_csi_deploy_iscsid_machineconfig: true
 
