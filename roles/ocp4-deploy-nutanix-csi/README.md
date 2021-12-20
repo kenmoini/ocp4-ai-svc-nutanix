@@ -1,7 +1,9 @@
-Role Name
+ocp4-deploy-nutanix-csi
 =========
 
-A brief description of the role goes here.
+This Ansible Role will deploy the Nutanix CSI Operator, an Operand Instance, the StorageClasses and MachineConfigs required to use the underlying Nutanix storage layer in an OpenShift 4 cluster.
+
+Tested with OpenShift 4.8 and 4.9.
 
 Requirements
 ------------
@@ -11,7 +13,30 @@ Any pre-requisites that may not be covered by Ansible itself or the role should 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+```yaml
+---
+operator_namespace: ntnx-system
+secret_name: ntnx-secret
+
+### Nutanix Volumes StorageClass, iSCSI based, no RWX
+nutanix_csi_deploy_volumes_storageclass: true
+nutanix_csi_prism_hostname: "{{ nutanix_prism_hostname }}"
+nutanix_csi_prism_port: "{{ nutanix_prism_port }}"
+nutanix_csi_prism_username: "{{ nutanix_prism_username }}"
+nutanix_csi_prism_password: "{{ nutanix_prism_password }}"
+nutanix_csi_volumes_storage_container_name: "{{ nutanix_prism_vm_storage_container_name }}"
+nutanix_csi_volumes_dataservices_ip: 1.2.3.4
+nutanix_csi_volumes_filesystem_type: ext4
+nutanix_csi_volumes_flashmode: false
+
+## nutanix_csi_deploy_iscsid_machineconfig is required to enable the iSCSId SystemD Service to bind the PVCs to the Pods
+nutanix_csi_deploy_iscsid_machineconfig: true
+
+### Nutanix Files StorageClass, NFS Based, RWO and RWX supported
+nutanix_csi_deploy_files_storageclass: false
+nutanix_csi_files_nfs_server: 5.6.7.8
+nutanix_csi_files_nfs_path: somePath
+```
 
 Dependencies
 ------------

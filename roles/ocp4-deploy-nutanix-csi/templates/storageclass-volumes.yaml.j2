@@ -1,8 +1,11 @@
-allowVolumeExpansion: true
+---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-    name: ntnx-volume-storageclass
+  name: ntnx-volumes-storageclass
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: csi.nutanix.com
 parameters:
   csi.storage.k8s.io/provisioner-secret-name: {{ secret_name }}
   csi.storage.k8s.io/provisioner-secret-namespace: {{ operator_namespace }}
@@ -10,10 +13,10 @@ parameters:
   csi.storage.k8s.io/node-publish-secret-namespace: {{ operator_namespace }}
   csi.storage.k8s.io/controller-expand-secret-name: {{ secret_name }}
   csi.storage.k8s.io/controller-expand-secret-namespace: {{ operator_namespace }}
-  csi.storage.k8s.io/fstype: ext4
-  dataServiceEndPoint: {{ nutanix_csi_dataservices_ip }}:3260
-  flashMode: DISABLED
-  storageContainer: {{ nutanix_csi_storage_container_name }}
+  csi.storage.k8s.io/fstype: {{ nutanix_csi_volumes_filesystem_type }}
+  dataServiceEndPoint: {{ nutanix_csi_volumes_dataservices_ip }}:3260
+  flashMode: {% if nutanix_csi_volumes_flashmode %}ENABLED{% else %}DISABLED{% endif %}
+  storageContainer: {{ nutanix_csi_volumes_storage_container_name }}
   storageType: NutanixVolumes
-provisioner: csi.nutanix.com
 reclaimPolicy: Delete
+allowVolumeExpansion: true

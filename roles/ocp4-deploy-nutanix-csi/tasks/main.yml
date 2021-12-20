@@ -1,5 +1,17 @@
 ---
 # tasks file for ocp4-nutanix-csi
+
+- name: Get Cluster Version
+  k8s_info:
+    api_version: config.openshift.io/v1
+    kind: ClusterVersion
+    name: version
+  register: r_ocp_version
+
+- name: Set cluster version
+  set_fact:
+    ocp_version: "{{ r_ocp_version.resources[0].status.desired.version  }}"
+
 - name: Create {{ operator_namespace }} namespace
   k8s:
     state: present
@@ -60,8 +72,20 @@
   retries: 200
   delay: 10
   until: csi_crd.resources | list | length == 1
+  when: ocp_version is version('4.9.0', operator='lt', strict=True)
 
-- name: Create Secret, Operand instance, and StorageClass
+- name: Wait for the CSI Operator to come online
+  k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: nutanixcsistorages.crd.nutanix.com
+  register: csi_crd
+  retries: 200
+  delay: 10
+  until: csi_crd.resources | list | length == 1
+  when: ocp_version is version('4.9.0', operator='ge', strict=True)
+
+- name: Create Secret and Operand instance
   k8s:
     state: present
     merge_type:
@@ -71,9 +95,56 @@
   loop:
   - ./templates/secret.yaml.j2
   - ./templates/instance.yaml.j2
+  loop_control:
+    loop_var: template_file
+  until: k8s_run is not failed
+  delay: 10
+  retries: 30
+
+- name: Create Volumes StorageClass
+  k8s:
+    state: present
+    merge_type:
+    - strategic-merge
+    - merge
+    definition: "{{ lookup('template', template_file ) | from_yaml }}"
+  loop:
   - ./templates/storageclass-volumes.yaml.j2
   loop_control:
     loop_var: template_file
   until: k8s_run is not failed
   delay: 10
   retries: 30
+  when: nutanix_csi_deploy_volumes_storageclass|bool
+
+- name: Create Files StorageClass
+  k8s:
+    state: present
+    merge_type:
+    - strategic-merge
+    - merge
+    definition: "{{ lookup('template', template_file ) | from_yaml }}"
+  loop:
+  - ./templates/storageclass-files.yaml.j2
+  loop_control:
+    loop_var: template_file
+  until: k8s_run is not failed
+  delay: 10
+  retries: 30
+  when: nutanix_csi_deploy_files_storageclass|bool
+
+- name: Create iSCSI Service MachineConfig
+  k8s:
+    state: present
+    merge_type:
+    - strategic-merge
+    - merge
+    definition: "{{ lookup('template', template_file ) | from_yaml }}"
+  loop:
+  - ./templates/enable-iscsid-service-machineconfig.yaml.j2
+  loop_control:
+    loop_var: template_file
+  until: k8s_run is not failed
+  delay: 10
+  retries: 30
+  when: nutanix_csi_deploy_iscsid_machineconfig|bool
