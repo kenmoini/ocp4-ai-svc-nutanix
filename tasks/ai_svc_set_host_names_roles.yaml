@@ -20,6 +20,11 @@
 
 - name: Set the Host names and roles
   block:
+
+    - name: Pause for 5 seconds to let the API catch up
+      wait_for:
+        timeout: 5
+
     - name: Get the list of hosts from the API
       uri:
         headers: "{{ compiled_uri_headers }}"
@@ -37,6 +42,10 @@
       template:
         src: templates/host_names_and_roles.json.j2
         dest: "{{ generated_asset_directory }}/{{ cluster_id }}/host_names_roles.json"
+      register: template_host_name_roles_results
+      retries: 20
+      delay: 20
+      until: template_host_name_roles_results is not failed
 
     - name: Patch the Assisted Installer API with the host names and roles
       uri:
@@ -47,6 +56,10 @@
         body: "{{ lookup('file', generated_asset_directory +'/'+ cluster_id +'/host_names_roles.json') }}"
         status_code: 201
         body_format: json
+      register: host_name_roles_results
+      retries: 20
+      delay: 20
+      until: host_name_roles_results is not failed
 
     - name: Pause for 5 seconds to let the API catch up
       wait_for:
