@@ -222,7 +222,7 @@
           when: assisted_service_authentication == "bearer-token"
 
         - name: Create VMs on via Prism
-          include_tasks: tasks/nutanix_create_vms_mixed_api_dumb_shit.yaml
+          include_tasks: tasks/nutanix_create_vms_mixed_api_patch.yaml
           loop: "{{ cluster_nodes }}"
           loop_control:
             loop_var: node
