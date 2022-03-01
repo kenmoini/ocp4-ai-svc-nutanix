@@ -18,11 +18,13 @@ interfaces:
 {% for iface in ocp_node.interfaces -%}
 {% if ((iface.ipv4 is defined) and (iface.ipv4|length>0)) %}
 - ipv4:
+{% if iface.dhcp == false %}
     address:
 {% for ipv4 in iface.ipv4 %}
     - ip: {{ ipv4.address }}
       prefix-length: {{ ipv4.prefix }}
 {% endfor %}
+{% endif %}
     dhcp: {{ iface.dhcp }}
     enabled: true
 {% endif %}

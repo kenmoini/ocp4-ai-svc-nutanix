@@ -259,7 +259,7 @@
     - name: Pull cluster credentials
       include_tasks: tasks/ai_svc_query_cluster_credentials.yaml
 
-    - name: Run old fasioned oc CLI commands
+    - name: Run old fashioned oc CLI commands
       block:
       - name: Log into the cluster
         shell:
