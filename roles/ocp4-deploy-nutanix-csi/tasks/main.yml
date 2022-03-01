@@ -12,6 +12,22 @@
   set_fact:
     ocp_version: "{{ r_ocp_version.resources[0].status.desired.version  }}"
 
+- name: Query the nutanixcsioperator PackageManifest for the latest version of the Nutanix Operator
+  k8s_info:
+    api_version: packages.operators.coreos.com/v1
+    kind: PackageManifest
+    name: nutanixcsioperator
+    namespace: openshift-marketplace
+  register: r_nutanixcsioperator_pm
+
+- name: Set the latest CSV version
+  set_fact:
+    ntnx_csi_csv_version: "{{ chan_item.currentCSV }}"
+  loop: "{{ r_nutanixcsioperator_pm.resources[0].status.channels }}"
+  loop_control:
+    loop_var: chan_item
+  when: chan_item.name == "stable"
+
 - name: Create {{ operator_namespace }} namespace
   k8s:
     state: present
@@ -35,6 +51,13 @@
   delay: 10
   retries: 30
 
+- name: Query the {{ operator_namespace }} namespace for OperatorGroups
+  k8s_info:
+    api_version: operators.coreos.com/v1
+    kind: OperatorGroup
+    namespace: "{{ operator_namespace }}"
+  register: r_og_list
+
 - name: Create Operator OperatorGroup
   k8s:
     state: present
@@ -47,6 +70,7 @@
   until: k8s_run is not failed
   delay: 10
   retries: 30
+  when: r_ocp_version.resources | length == 0
 
 - name: Create Operator subscription
   k8s:
