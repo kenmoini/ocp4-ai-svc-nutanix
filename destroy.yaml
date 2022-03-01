@@ -41,7 +41,7 @@
         cluster_id: "{{ item.id }}"
         cluster_status: "{{ item.status }}"
       loop: "{{ read_clusters.json }}"
-      when: (item.base_dns_domain == cluster_domain) and (item.name == cluster_name)
+      when: (item.base_dns_domain is defined) and (item.base_dns_domain == cluster_domain) and (item.name == cluster_name)
 
     - name: Delete the cluster from the Assisted Installer service
       block:
