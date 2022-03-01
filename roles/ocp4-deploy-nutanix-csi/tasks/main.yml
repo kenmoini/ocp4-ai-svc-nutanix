@@ -70,7 +70,7 @@
   until: k8s_run is not failed
   delay: 10
   retries: 30
-  when: r_ocp_version.resources | length == 0
+  when: r_og_list.resources | length == 0
 
 - name: Create Operator subscription
   k8s:
