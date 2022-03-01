@@ -36,6 +36,14 @@ git clone https://github.com/kenmoini/ocp4-ai-svc-nutanix.git
 cd ocp4-ai-svc-nutanix/
 ```
 
+### Installing Needed Pip Packages
+
+Before running this Ansible content, you will need to install the `kubernetes` and `openshift` pip packages - you can do so in one shot by running the following command:
+
+```bash
+python3 -m pip install --upgrade -r requirements.txt
+```
+
 ### Installing Ansible Collections
 
 In order to run this Playbook you'll need to have the needed Ansible Collections already installed - you can do so easily by running the following command:
