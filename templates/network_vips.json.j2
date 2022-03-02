@@ -1,6 +1,12 @@
 {
-  "vip_dhcp_allocation": {{ 'false' if ((cluster_api_vip != "auto") and (cluster_load_balancer_vip != "auto")) else 'true' }},
+{% if cluster_type == "SNO" %}
+  "machine_network_cidr": "{{ cluster_node_cidr }}",
+  "user_managed_networking": true,
+{% endif %}
+{% if cluster_type == "Standard" %}
   "api_vip": "{{ '' if cluster_api_vip == "auto" else cluster_api_vip }}",
   "ingress_vip": "{{ '' if cluster_load_balancer_vip == "auto" else cluster_load_balancer_vip }}",
-  "user_managed_networking": false
+  "user_managed_networking": false,
+{% endif %}
+  "vip_dhcp_allocation": {{ 'false' if ((cluster_api_vip != "auto") and (cluster_load_balancer_vip != "auto")) else 'true' }},
 }
