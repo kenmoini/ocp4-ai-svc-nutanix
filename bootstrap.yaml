@@ -234,7 +234,7 @@
 
     - name: Set Host Names and Roles for Standard HA OpenShift Cluster
       include_tasks: tasks/ai_svc_set_host_names_roles.yaml
-      when: cluster_type == "Standard"
+      #when: cluster_type == "Standard"
 
     - name: Set Network VIPs
       include_tasks: tasks/ai_svc_set_vips.yaml
