@@ -3,7 +3,7 @@
 ## This example is configured to support SNO on Nutanix deployments
 
 injected_manifests:
-- name: machineconfig-enable-iscsid-service.yaml
+- name: machineconfig-master-enable-iscsid-service.yaml
   folder: manifests
   content: |
     ---
@@ -11,15 +11,20 @@ injected_manifests:
     kind: MachineConfig
     metadata:
       labels:
-        machineconfiguration.openshift.io/role: worker
-      name: 99-custom-enable-iscsid-worker
+        machineconfiguration.openshift.io/role: master
+      name: 99-custom-enable-iscsid-master
     spec:
       config:
         ignition:
           version: 2.2.0
         systemd:
           units:
-          - enabled: true
+          - dropins:
+              - contents: |
+                  [Service]
+                  Restart=always
+                name: 10-iscsid-restart.conf
+            enabled: true
             name: iscsid.service
 - name: machineconfig-nfs-pv-selinux-workaround.yaml
   folder: manifests
@@ -29,12 +34,12 @@ injected_manifests:
     kind: MachineConfig
     metadata:
       labels:
-        machineconfiguration.openshift.io/role: worker
-      name: 98-worker-nfs-pv-selinux-workaround
+        machineconfiguration.openshift.io/role: master
+      name: 99-master-nfs-pv-selinux-workaround
     spec:
       config:
         ignition:
-          version: 3.1.0
+          version: 2.2.0
         systemd:
           units:
           - contents: |

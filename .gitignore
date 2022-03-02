@@ -6,6 +6,8 @@ vars/assisted-service.yml
 vars/assisted-service.yaml
 vars/nutanix-config.yaml
 vars/nutanix-config.yml
+vars/extra-manifests.yml
+vars/extra-manifests.yaml
 !example_vars/*
 /*cluster-config.yml*
 /*cluster-config.yaml
