@@ -37,26 +37,41 @@ nutanix_csi_deploy_iscsid_machineconfig: true
 nutanix_csi_deploy_files_storageclass: false
 nutanix_csi_files_nfs_server: 5.6.7.8
 nutanix_csi_files_nfs_path: somePath
+
+## nutanix_csi_deploy_files_storageclass_selinux_patch is required to enable the NFS Filesystem to be mounted with the proper SELinux labels
+nutanix_csi_deploy_files_storageclass_selinux_patch: true
 ```
 
 Dependencies
 ------------
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+- `kubernetes.core` Ansible Collection
+- `kubernetes` pip module
+- `openShift` pip module
 
 Example Playbook
 ----------------
 
 Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yaml
+---
+- name: Deploy Nutanix CSI Operator
+  hosts: localhost
+  connection: local
+
+  tasks:
+  - name: Deploy the Nutanix CSI via Roles
+    include_role:
+      name: ocp4-deploy-nutanix-csi
+```
+
+Execute with `ansible-playbook -e "@vars.yml" deploy-csi.yml`
 
 License
 -------
 
-BSD
+MIT
 
 Author Information
 ------------------
