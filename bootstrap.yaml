@@ -236,7 +236,7 @@
     - name: Wait for hosts to report into the Assisted Installer service
       include_tasks: tasks/ai_svc_check_for_hosts.yaml
 
-    - name: Set Host Names and Roles for Standard HA OpenShift Cluster
+    - name: Set Host Names and Roles for OpenShift Cluster
       include_tasks: tasks/ai_svc_set_host_names_roles.yaml
       #when: cluster_type == "Standard"
 
