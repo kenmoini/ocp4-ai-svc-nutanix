@@ -173,6 +173,7 @@
     until: k8s_run is not failed
     delay: 10
     retries: 30
+    when: nutanix_csi_deploy_files_storageclass_selinux_patch|bool
 
   when: nutanix_csi_deploy_files_storageclass|bool
 

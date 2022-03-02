@@ -11,3 +11,5 @@ nutanix_csi_deploy_iscsid_machineconfig: true
 ## StorageClass Defaults
 nutanix_csi_volumes_filesystem_type: ext4
 nutanix_csi_volumes_flashmode: false
+
+nutanix_csi_deploy_files_storageclass_selinux_patch: true
