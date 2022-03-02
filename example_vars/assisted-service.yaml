@@ -21,5 +21,5 @@ assisted_service_authentication_api_bearer_token: "{{ lookup('file', '~/rh-api-o
 
 
 ################################################### DO NOT EDIT PAST THIS LINE
-assisted_service_api_base: /api/assisted-install/v1
+assisted_service_api_base: /api/assisted-install/v2
 assisted_service_endpoint: "{{ assisted_service_transport }}://{{ assisted_service_fqdn }}:{{ assisted_service_port }}{{ assisted_service_api_base }}"
