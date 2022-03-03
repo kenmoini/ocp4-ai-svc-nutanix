@@ -28,7 +28,6 @@
     - name: Get the list of hosts from the API
       uri:
         headers: "{{ compiled_uri_headers }}"
-        #url: "{{ assisted_service_endpoint }}/clusters/{{ cluster_id }}/hosts"
         url: "{{ assisted_service_endpoint }}/infra-envs/{{ infraenv_id }}/hosts"
         return_content: yes
         method: GET
