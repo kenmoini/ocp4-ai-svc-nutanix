@@ -6,6 +6,7 @@
 
   vars:
     cluster_id: ""
+    infraenv_id: ""
     cluster_status: ""
     deployment_name: ""
     compiled_uri_headers:
@@ -40,12 +41,27 @@
         method: GET
       register: read_clusters
 
+    - name: Read AI Service, check for existing infraenvs
+      uri:
+        headers: "{{ compiled_uri_headers }}"
+        url: "{{ assisted_service_endpoint }}/infra-envs"
+        return_content: yes
+        method: GET
+      register: read_infraenvs
+
     - name: Set facts if cluster exists
       set_fact:
         cluster_id: "{{ item.id }}"
         cluster_status: "{{ item.status }}"
       loop: "{{ read_clusters.json }}"
       when: (item.base_dns_domain is defined) and (item.base_dns_domain == cluster_domain) and (item.name == cluster_name)
+
+    - name: Set facts if infraenv exists
+      set_fact:
+        infraenv_id: "{{ item.id }}"
+        infraenv_download_url: "{{ item.download_url }}"
+      loop: "{{ read_infraenvs.json }}"
+      when: (item.cluster_id is defined) and (item.cluster_id == cluster_id) and (item.name == cluster_name)
 
     # y tho? oh yeah, if importing, duh lololo
     - name: Create Cluster Asset Generation Directory
@@ -67,13 +83,19 @@
           include_tasks: tasks/ai_svc_create_cluster.yaml
       when: cluster_id == ""
 
+    - name: Create Cluster Asset Generation Directory
+      file:
+        path: "{{ generated_asset_directory }}/{{ cluster_id }}"
+        state: directory
+
+    - name: Create the infraenv if it does not already exist
+      block:
+        - name: Create the infraenv deployment definition
+          include_tasks: tasks/ai_svc_create_infraenv.yaml
+      when: infraenv_id == ""
+
     - name: Set Cluster Configuration
       block:
-
-        - name: Create Cluster Asset Generation Directory
-          file:
-            path: "{{ generated_asset_directory }}/{{ cluster_id }}"
-            state: directory
 
         - name: Copy deployment file into cluster directory
           copy:
@@ -92,14 +114,14 @@
         - name: Patch in Cluster Preconfiguration for Networking
           include_tasks: tasks/ai_svc_preconfig_networking.yaml
 
-        - name: Inject extra manifests
-          include_tasks: tasks/ai_svc_preconfig_extra_manifests.yaml
-          when: injected_manifests is defined
-
         - name: Configure ISO Parameters
           include_tasks: tasks/ai_svc_configure_iso_params.yaml
           
       when: deployment_name != ""
+
+    - name: Inject extra manifests
+      include_tasks: tasks/ai_svc_preconfig_extra_manifests.yaml
+      when: injected_manifests is defined
 
     - name: Set core user password
       block:      
@@ -165,64 +187,65 @@
             - name: Conditionally create the local image relay if it does not exist
               when: nutanix_ocp_ai_iso_uuid is not defined
               block:
-              - name: Create local directory for web server
-                file:
-                  state: directory
-                  path: "{{ generated_asset_directory }}/{{ cluster_id }}/tmp_server"
-
-              - name: Create web server python script
-                lineinfile:
-                  create: yes
-                  dest: "{{ generated_asset_directory }}/{{ cluster_id }}/tmp_server/server.py"
-                  mode: 0755
-                  line: |
-                    import os
-                    from http.server import HTTPServer, CGIHTTPRequestHandler
-                    # Make sure the server is created at current directory
-                    os.chdir('.')
-                    # Create server object listening the port 8901
-                    server_object = HTTPServer(server_address=('', 8901), RequestHandlerClass=CGIHTTPRequestHandler)
-                    # Start the web server
-                    server_object.serve_forever()
-
-              - name: Scan any process using this port
-                shell: lsof -n -i :8901 | grep LISTEN | cut -f 2 -d " "
-                register: port_scan
-                become: yes
-
-              - name: Kill any process using this port
-                shell: "kill {{ port_scan.stdout }}"
-                become: yes
-                when: port_scan.stdout_lines|length > 0
-
-              - name: Execute python script
-                shell: |
-                  cd {{ generated_asset_directory }}/{{ cluster_id }}/tmp_server
-                  python3 server.py &> /dev/null &
-                  echo $!
-                register: python_script_out
-
-              - name: Download the ISO locally
-                get_url:
-                  headers: "{{ compiled_uri_headers }}"
-                  url: "{{ assisted_service_endpoint }}/clusters/{{ cluster_id }}/downloads/image"
-                  dest: "{{ generated_asset_directory }}/{{ cluster_id }}/tmp_server/ocp-ai-{{ cluster_id }}.iso"
+              # - name: Create local directory for web server
+                # file:
+                  # state: directory
+                  # path: "{{ generated_asset_directory }}/{{ cluster_id }}/tmp_server"
+ 
+              # - name: Create web server python script
+                # lineinfile:
+                  # create: yes
+                  # dest: "{{ generated_asset_directory }}/{{ cluster_id }}/tmp_server/server.py"
+                  # mode: 0755
+                  # line: |
+                    # import os
+                    # from http.server import HTTPServer, CGIHTTPRequestHandler
+                    #Make sure the server is created at current directory
+                    # os.chdir('.')
+                    #Create server object listening the port 8901
+                    # server_object = HTTPServer(server_address=('', 8901), RequestHandlerClass=CGIHTTPRequestHandler)
+                    #Start the web server
+                    # server_object.serve_forever()
+ 
+              # - name: Scan any process using this port
+                # shell: lsof -n -i :8901 | grep LISTEN | cut -f 2 -d " "
+                # register: port_scan
+                # become: yes
+ 
+              # - name: Kill any process using this port
+                # shell: "kill {{ port_scan.stdout }}"
+                # become: yes
+                # when: port_scan.stdout_lines|length > 0
+ 
+              # - name: Execute python script
+                # shell: |
+                  # cd {{ generated_asset_directory }}/{{ cluster_id }}/tmp_server
+                  # python3 server.py &> /dev/null &
+                  # echo $!
+                # register: python_script_out
+ 
+              # - name: Download the ISO locally
+                # get_url:
+                  # headers: "{{ compiled_uri_headers }}"
+                  # url: "{{ assisted_service_endpoint }}/clusters/{{ cluster_id }}/downloads/image"
+                  # dest: "{{ generated_asset_directory }}/{{ cluster_id }}/tmp_server/ocp-ai-{{ cluster_id }}.iso"
 
               - name: Create & Upload Image locally proxied from RH Hosted AI SVC
                 include_tasks: tasks/nutanix_create_image_v2.yaml
                 vars:
-                  image_source_uri: "http://{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:8901/ocp-ai-{{ cluster_id }}.iso"
+                  #image_source_uri: "http://{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:8901/ocp-ai-{{ cluster_id }}.iso"
+                  image_source_uri: "{{ infraenv_download_url }}"
                   image_name: "ocp-ai-{{ cluster_id }}"
-                  image_description: "OpenShift Assisted Installer ISO for Cluster {{ cluster_name }} with Cluster ID {{ cluster_id }}"
-              always:
-              - name: Stop the python web server
-                shell: "kill {{ python_script_out.stdout }}"
-                ignore_errors: yes
+                  image_description: "OpenShift Assisted Installer ISO for Cluster {{ cluster_name }} with Cluster ID {{ cluster_id }} and InfraEnv ID {{ infraenv_id }}"
+              #always:
+              #- name: Stop the python web server
+              #  shell: "kill {{ python_script_out.stdout }}"
+              #  ignore_errors: yes
 
-              - name: Clean up local files
-                file:
-                  state: absent
-                  path: "{{ generated_asset_directory }}/{{ cluster_id }}/tmp_server"
+              #- name: Clean up local files
+              #  file:
+              #    state: absent
+              #    path: "{{ generated_asset_directory }}/{{ cluster_id }}/tmp_server"
           when: assisted_service_authentication == "bearer-token"
 
         - name: Create VMs on via Prism

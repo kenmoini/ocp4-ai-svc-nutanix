@@ -35,6 +35,14 @@
         return_content: yes
         method: GET
       register: read_clusters
+
+    - name: Read AI Service, check for existing infraenvs
+      uri:
+        headers: "{{ compiled_uri_headers }}"
+        url: "{{ assisted_service_endpoint }}/infra-envs"
+        return_content: yes
+        method: GET
+      register: read_infraenvs
     
     - name: Set facts if cluster exists
       set_fact:
@@ -42,6 +50,26 @@
         cluster_status: "{{ item.status }}"
       loop: "{{ read_clusters.json }}"
       when: (item.base_dns_domain is defined) and (item.base_dns_domain == cluster_domain) and (item.name == cluster_name)
+
+    - name: Set facts if infraenv exists
+      set_fact:
+        infraenv_id: "{{ item.id }}"
+      loop: "{{ read_infraenvs.json }}"
+      when: (item.cluster_id is defined) and (item.cluster_id == cluster_id) and (item.name == cluster_name)
+
+    - name: Delete the infraenv from the Assisted Installer service
+      block:
+      - name: Delete the infraenv
+        uri:
+          headers: "{{ compiled_uri_headers }}"
+          url: "{{ assisted_service_endpoint }}/infra-envs/{{ infraenv_id }}"
+          return_content: yes
+          method: DELETE
+          status_code: 204
+          body_format: json
+        register: delete_infraenv
+        ignore_errors: yes
+      when: infraenv_id != ""
 
     - name: Delete the cluster from the Assisted Installer service
       block:
