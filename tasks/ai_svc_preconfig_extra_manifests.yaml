@@ -13,3 +13,4 @@
     loop: "{{ injected_manifests }}"
     loop_control:
       loop_var: manifest
+      label: "{{ manifest.name }}"

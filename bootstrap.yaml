@@ -117,6 +117,10 @@
         - name: Configure ISO Parameters
           include_tasks: tasks/ai_svc_configure_iso_params.yaml
           
+        - name: Add Additional Root CAs to the Discovery ISO
+          include_tasks: tasks/ai_svc_add_additionalTrustBundle_to_infraenv.yaml
+          when: additionalTrustBundles is defined
+
       when: deployment_name != ""
 
     - name: Inject extra manifests
