@@ -25,7 +25,7 @@
 - name: Assert that SNO mode is supported by the desired version
   assert:
     that:
-      - cluster_version|string > "4.8"
+      - cluster_version|string != "4.8"
     fail_msg: "Desired cluster_version '{{ cluster_version|string }}' is not able to deploy as a Single Node OpenShift cluster - only available in 4.8+"
     success_msg: "Desired cluster_version '{{ cluster_version|string }}' is able to deploy as a Single Node OpenShift cluster!"
   when: cluster_type == "SNO"
