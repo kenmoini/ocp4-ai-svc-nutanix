@@ -13,9 +13,9 @@
     validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
   register: nutanix_redefined_vm_info
 
-- name: d
-  debug:
-    msg: "{{ nutanix_redefined_vm_info }}"
+#- name: d
+#  debug:
+#    msg: "{{ nutanix_redefined_vm_info }}"
 
 - name: Add VM Disks as VM redefinitions
   block:
@@ -45,6 +45,7 @@
     set_fact:
       new_disks: "{{ nutanix_redefined_vm_info.json.entities[0].spec.resources.disk_list + [new_disk] }}"
       old_resources: "{{ nutanix_redefined_vm_info.json.entities[0].spec.resources }}"
+      old_resources_status: "{{ nutanix_redefined_vm_info.json.entities[0].status.resources }}"
 
   - name: Redefine VM - {{ cluster_name }}-{{ node.name }}
     uri:
@@ -75,7 +76,7 @@
               "power_state": "OFF",
               "is_agent_vm": false,
               "disable_branding": false,
-              "machine_type": "{{ old_resources.machine_type }}",
+              "machine_type": "{{ old_resources_status.machine_type }}",
               "nic_list": {{ old_resources.nic_list }},
               "gpu_list": {{ old_resources.gpu_list }},
               "vga_console_enabled": true,
