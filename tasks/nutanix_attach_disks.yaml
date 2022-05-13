@@ -76,7 +76,6 @@
               "power_state": "OFF",
               "is_agent_vm": false,
               "disable_branding": false,
-              "machine_type": "{{ old_resources_status.machine_type }}",
               "nic_list": {{ old_resources.nic_list }},
               "gpu_list": {{ old_resources.gpu_list }},
               "vga_console_enabled": true,
