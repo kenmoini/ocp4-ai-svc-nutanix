@@ -13,6 +13,10 @@
     validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
   register: nutanix_redefined_vm_info
 
+- name: d
+  debug:
+    msg: "{{ nutanix_redefined_vm_info }}"
+
 - name: Add VM Disks as VM redefinitions
   block:
 
