@@ -1,0 +1,65 @@
+---
+
+- name: Check for this VM - {{ cluster_name }}-{{ node.name }}
+  uri:
+    url: "{{ nutanix_prism_endpoint }}{{ nutanix_prism_api_v3_base }}/vms/list"
+    return_content: yes
+    method: POST
+    status_code: 200
+    body_format: json
+    body: '{"kind":"vm", "filter": "vm_name=={{ cluster_name }}-{{ node.name }}"}'
+    force_basic_auth: yes
+    user: "{{ nutanix_prism_username }}"
+    password: "{{ nutanix_prism_password }}"
+    validate_certs: "{{ not nutanix_prism_skip_ssl_verification|bool }}"
+  register: nutanix_vm_check
+
+- name: Create VM processes - {{ cluster_name }}-{{ node.name }}
+  when: nutanix_vm_check.json.entities | length == 0
+  block:
+
+  - name: Set empty fact for NICs
+    set_fact:
+      vm_nic_config: []
+
+  - name: Create NIC configuration for the VM
+    set_fact:
+      vm_nic_config: "{{ vm_nic_config + [{ \"is_connected\": True, \"mac_address\": \"{{ iface.mac_address }}\", \"subnet\": {\"name\": \"{{ nutanix_prism_network_name }}\"} }] }}"
+    loop: "{{ node.interfaces }}"
+    loop_control:
+      loop_var: iface
+
+  - name: Create VM - {{ cluster_name }}-{{ node.name }}
+    nutanix.ncp.ntnx_vms:
+      nutanix_username: "{{ nutanix_prism_username }}"
+      nutanix_password: "{{ nutanix_prism_password }}"
+      nutanix_host: "{{ nutanix_prism_hostname }}"
+      validate_certs: false
+      state: present
+      name: "{{ cluster_name }}-{{ node.name }}"
+      desc: "OpenShift {{ node.type }} node"
+      cluster:
+        name: "{{ nutanix_prism_cluster_name }}"
+      networks: "{{ vm_nic_config }}"
+#        - is_connected: True
+#          mac_address: "{{ node.interfaces[0].mac_address }}"
+#          subnet:
+#            name: "{{ nutanix_prism_network_name }}"
+      disks:
+        - type: "DISK"
+          size_gb: "{{ node.vm.disk_size|int }}"
+          bus: "SATA"
+          storage_container:
+            uuid: "{{ nutanix_vm_storage_container_uuid }}"
+        - type: "CDROM"
+          bus: "IDE"
+          clone_image:
+            name: "{{ nutanix_ocp_ai_iso_name }}"
+      boot_config:
+        boot_type: LEGACY
+        boot_order:
+          - DISK
+          - CDROM
+      vcpus: "{{ node.vm.cpu_sockets|int }}"
+      cores_per_vcpu: "{{ node.vm.cpu_cores|int }}"
+      memory_gb: "{{ (node.vm.memory|int / 1024) |int }}"
