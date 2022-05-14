@@ -16,6 +16,8 @@
 - name: Set Image UUID
   set_fact:
     nutanix_ocp_ai_iso_uuid: "{{ image.metadata.uuid }}"
+    nutanix_ocp_ai_iso_vm_disk_uuid: "{{ image.metadata.vm_disk_id }}"
+    nutanix_ocp_ai_iso_name: "{{ image.metadata.name }}"
   when: image.spec.name == image_name
   loop: "{{ nutanix_images_info.json.entities }}"
   loop_control:
@@ -28,7 +30,7 @@
     method: POST
     status_code: 202
     body_format: json
-    body: '{"api_version":"3.1.0","metadata":{"kind":"image"},"spec":{"name":"{{ image_name }}","description":"{{ image_description }}","resources":{"image_type": "ISO_IMAGE", "source_options": {"allow_insecure_connection": true}, "source_uri": "{{ image_source_uri }}", "storage_container_reference": {"uuid": "something"}} } }'
+    body: '{"api_version":"3.1.0","metadata":{"kind":"image"},"spec":{"name":"{{ image_name }}","description":"{{ image_description }}","resources":{"image_type": "ISO_IMAGE", "source_options": {"allow_insecure_connection": true}, "source_uri": "{{ image_source_uri }}", "storage_container_reference": {"uuid": "{{ nutanix_image_storage_container_uuid }}"}} } }'
     force_basic_auth: yes
     user: "{{ nutanix_prism_username }}"
     password: "{{ nutanix_prism_password }}"
@@ -41,4 +43,13 @@
   - name: Set Image UUID
     set_fact:
       nutanix_ocp_ai_iso_uuid: "{{ nutanix_create_image_info.json.metadata.uuid }}"
+      nutanix_ocp_ai_iso_vm_disk_uuid: "{{ nutanix_create_image_info.json.metadata.vm_disk_id }}"
+      nutanix_ocp_ai_iso_name: "{{ nutanix_create_image_info.json.metadata.name }}"
   when: nutanix_create_image_info is defined
+
+- name: Image Information
+  debug:
+    msg:
+      - "Image UUID: {{ nutanix_ocp_ai_iso_uuid }}"
+      - "Image VM Disk UUID: {{ nutanix_ocp_ai_iso_vm_disk_uuid }}"
+      - "Image Name: {{ nutanix_ocp_ai_iso_name }}"

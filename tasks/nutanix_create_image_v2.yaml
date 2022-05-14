@@ -16,6 +16,7 @@
   set_fact:
     nutanix_ocp_ai_iso_uuid: "{{ image.uuid }}"
     nutanix_ocp_ai_iso_vm_disk_uuid: "{{ image.vm_disk_id }}"
+    nutanix_ocp_ai_iso_name: "{{ image.name }}"
   when: image.name == image_name
   loop: "{{ nutanix_images_info.json.entities }}"
   loop_control:
@@ -80,9 +81,17 @@
     set_fact:
       nutanix_ocp_ai_iso_uuid: "{{ nutanix_image_detail_info.json.uuid }}"
       nutanix_ocp_ai_iso_vm_disk_uuid: "{{ nutanix_image_detail_info.json.vm_disk_id }}"
+      nutanix_ocp_ai_iso_name: "{{ nutanix_image_detail_info.json.name }}"
   when: nutanix_ocp_ai_iso_uuid is not defined
 
 - name: Fail when no Image was created
   fail:
     msg: "No Image seems to have been uploaded, nutanix_ocp_ai_iso_uuid is undefined!"
   when: nutanix_ocp_ai_iso_uuid is not defined
+
+- name: Image Information
+  debug:
+    msg:
+      - "Image UUID: {{ nutanix_ocp_ai_iso_uuid }}"
+      - "Image VM Disk UUID: {{ nutanix_ocp_ai_iso_vm_disk_uuid }}"
+      - "Image Name: {{ nutanix_ocp_ai_iso_name }}"
