@@ -103,6 +103,7 @@
           }
         }
     register: nutanix_attach_vm_disk_info
+#              "machine_type": "{{ old_resources_status.machine_type }}",
 #              "is_vcpu_hard_pinned": false,
 
   - name: Probe for Task Info until it is complete
