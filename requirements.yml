@@ -3,3 +3,4 @@ collections:
   - community.crypto
   - community.okd
   - kubernetes.core
+  - nutanix.ncp
