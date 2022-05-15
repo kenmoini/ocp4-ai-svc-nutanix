@@ -8,7 +8,7 @@
 {% set node_set = {'flag': False } %}
 {% for iface in node.interfaces %}
 {% if (iface.mac_address|lower in h_interface_macs) and (node_set.flag == False) %}
-    "hostname": "{{ node.name }}",
+    "hostname": "{{ node.name }}.{{ cluster_name }}.{{ cluster_domain }}",
     "role": "{% if node.type == "application-node" %}worker{% endif %}{% if node.type == "control-plane" %}master{% endif %}{% if node.type == "sno" %}sno{% endif %}"
 {% if node_set.update({'flag':True}) %}{% endif %}
 {% endif %}
