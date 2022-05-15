@@ -20,14 +20,11 @@
 
   - name: Set empty fact for NICs
     set_fact:
-      vm_nic_config: []
+      vm_nic_config: "{{ lookup('template', 'ntnx_collection_vm_nic_config.json.j2') }}"
 
-  - name: Create NIC configuration for the VM
-    set_fact:
-      vm_nic_config: "{{ vm_nic_config + [{ \"is_connected\": True, \"mac_address\": \"{{ iface.mac_address }}\", \"subnet\": {\"name\": \"{{ nutanix_prism_network_name }}\"} }] }}"
-    loop: "{{ node.interfaces }}"
-    loop_control:
-      loop_var: iface
+  - name: d
+    debug:
+      msg: "{{ vm_nic_config }}"
 
   - name: Create VM - {{ cluster_name }}-{{ node.name }}
     nutanix.ncp.ntnx_vms:

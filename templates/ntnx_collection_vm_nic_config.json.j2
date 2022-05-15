@@ -1,0 +1,7 @@
+[
+{% for iface in node.interfaces %}
+{
+  "is_connected": True, "mac_address": "{{ iface.mac_address }}", "subnet": {"name": "{{ nutanix_prism_network_name }}"}
+}{%- if not loop.last %},{% endif %}
+{% endfor %}
+]
