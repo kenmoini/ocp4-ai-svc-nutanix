@@ -1,8 +1,8 @@
 # OpenShift 4 Assisted Installer on Nutanix
 
-This set of resources handles an idempotent way to deploy OpenShift via an Assisted Installer service onto a Nutanix cluster.
+> ***This repository has been depreciated in favor of*** https://github.com/kenmoini/ocp4-ai-svc-universal
 
-> This repository has been depreciated in favor of https://github.com/kenmoini/ocp4-ai-svc-universal
+This set of resources handles an idempotent way to deploy OpenShift via an Assisted Installer service onto a Nutanix cluster.
 
 ## Operations
 
