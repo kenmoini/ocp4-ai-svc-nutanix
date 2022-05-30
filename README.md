@@ -2,6 +2,8 @@
 
 This set of resources handles an idempotent way to deploy OpenShift via an Assisted Installer service onto a Nutanix cluster.
 
+> This repository has been depreciated in favor of https://github.com/kenmoini/ocp4-ai-svc-universal
+
 ## Operations
 
 What this Ansible content will do is the following:
